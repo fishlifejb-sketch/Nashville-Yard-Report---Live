@@ -8,5 +8,5 @@ window.YARD_CONFIG = {
     appId: "1:627326785751:web:b928618381a092858b3892"
   },
   sheetRelayUrl: "",
-  sheetRelaySecret: ""
+  sheetRelaySecret: "yard-72e025507f41"
 };

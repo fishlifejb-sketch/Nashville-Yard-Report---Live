@@ -11,7 +11,7 @@
  * If you change this code later, use Deploy → Manage deployments → Edit (pencil) → Version: New version,
  * so the URL stays the same.
  */
-const SECRET = "change-this-word";
+const SECRET = "yard-72e025507f41";
 
 function doPost(e) {
   let out;
