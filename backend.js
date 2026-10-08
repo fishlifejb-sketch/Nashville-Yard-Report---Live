@@ -1,3 +1,12 @@
+// ============================================================
+//  Trailer Yard Report: backend connector
+//  Gives the app the same four services it had inside Claude:
+//    db        → Firebase Firestore (shared, live)
+//    user      → anonymous sign-in per device + owner/manager roles
+//    downloads → normal browser download
+//    mcp       → Google Sheet updates through your Apps Script relay
+//  You shouldn't need to edit this file. Settings live in config.js.
+// ============================================================
 (function () {
   "use strict";
   const cfg = window.YARD_CONFIG || {};
@@ -16,6 +25,7 @@
   const db = firebase.firestore();
   try { db.settings({ ignoreUndefinedProperties: true }); } catch (e) {}
 
+  // ---- per-device sign-in (no passwords; each phone/computer gets its own id) ----
   const signedIn = new Promise((resolve, reject) => {
     const off = auth.onAuthStateChanged(u => {
       if (u) { off(); resolve(u); }
@@ -26,6 +36,7 @@
     });
   });
 
+  // ---- one-at-a-time lease (used so only one manager page writes the Google Sheet) ----
   const realDoc = db.doc.bind(db);
   db.doc = function (path) {
     const ref = realDoc(path);
@@ -40,12 +51,15 @@
     return ref;
   };
 
+  // ---- the first device that opens the manager page (no employee link) becomes the owner ----
   const ownerRef = realDoc("owner/main");
   const onEmployeeLink = () => /^#e-/.test(location.hash || "");
   async function isOwner(uid) {
     const snap = await ownerRef.get();
     if (snap.exists) return snap.data().uid === uid;
     if (onEmployeeLink()) return false;
+    // Netlify (and link previews) open the page with a robot browser; never let one claim the site.
+    if (navigator.webdriver || /Headless|bot|crawl|spider|preview/i.test(navigator.userAgent || "")) return false;
     try {
       return await db.runTransaction(async tx => {
         const s = await tx.get(ownerRef);
@@ -56,6 +70,7 @@
     } catch (e) { return false; }
   }
 
+  // ---- Google Sheet relay (Apps Script web app) ----
   const relayUrl = (cfg.sheetRelayUrl || "").trim();
   function relayError(code, message) { const e = new Error(message); e.code = code; return e; }
   const mcp = !relayUrl ? null : {
@@ -67,7 +82,7 @@
       try {
         res = await fetch(relayUrl, {
           method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          headers: { "Content-Type": "text/plain;charset=utf-8" }, // avoids a CORS preflight Apps Script can't answer
           body: JSON.stringify({ secret: cfg.sheetRelaySecret || "", tool, args })
         });
       } catch (e) { throw relayError("server_unavailable", "The Google Sheet relay didn't respond."); }
@@ -79,6 +94,7 @@
     }
   };
 
+  // ---- downloads ----
   const downloads = {
     async save({ filename, data, mimeType }) {
       const blob = data instanceof Blob ? data : new Blob([data], { type: mimeType || "text/csv;charset=utf-8" });
@@ -97,7 +113,7 @@
       id: async () => uid,
       isOwner: () => (ownerP = ownerP || isOwner(uid)),
       can: async () => true,
-      profiles: async () => ({})
+      profiles: async () => ({}) // names come from what each person picks on the Clicker
     };
     const services = { db, user, downloads, mcp };
     window.claude = { use: async name => services[name] || null };

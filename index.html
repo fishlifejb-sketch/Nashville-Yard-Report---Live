@@ -1,0 +1,1869 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Trailer Yard Report</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%23e0a100%22/><rect x=%2214%22 y=%2232%22 width=%2262%22 height=%2236%22 rx=%224%22 fill=%22%231b2128%22/><circle cx=%2230%22 cy=%2274%22 r=%228%22 fill=%22%231b2128%22/><circle cx=%2262%22 cy=%2274%22 r=%228%22 fill=%22%231b2128%22/></svg>">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: yard-office console. Managers get the yard sheet, the clicker and an Employees tab; employees on their link get only the big-button clicker, one step at a time. */
+:root{
+  --bg:#eef0f2; --panel:#ffffff; --ink:#1b2128; --muted:#5d6874; --line:#d5dade;
+  --accent:#e0a100; --accent-ink:#1b2128; --accent-soft:#fbf0cc;
+  --good:#1f7a4d; --good-soft:#dcefe4; --warn:#b4471d; --warn-soft:#f7e1d8;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14181d; --panel:#1d232a; --ink:#e6e9ec; --muted:#97a2ad; --line:#323a43;
+  --accent:#f0b429; --accent-ink:#14181d; --accent-soft:#3a3016;
+  --good:#5cc392; --good-soft:#18352a; --warn:#f08a62; --warn-soft:#3d2219; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14181d; --panel:#1d232a; --ink:#e6e9ec; --muted:#97a2ad; --line:#323a43;
+  --accent:#f0b429; --accent-ink:#14181d; --accent-soft:#3a3016;
+  --good:#5cc392; --good-soft:#18352a; --warn:#f08a62; --warn-soft:#3d2219; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0 48px;display:grid;gap:20px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding-block:12px;border-bottom:4px solid var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:1.7rem;letter-spacing:.03em;text-transform:uppercase;margin:0;line-height:1;white-space:nowrap}
+.chip{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.who{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);letter-spacing:.04em;max-width:45vw;overflow:hidden;text-overflow:ellipsis}
+.status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted)}
+.sync{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+.sync.ok{background:var(--good)}.sync.busy{background:var(--accent)}.sync.err{background:var(--warn)}
+.mtabs{display:flex;gap:4px;width:100%;overflow-x:auto}
+.mtabs button{border:0;background:transparent;font-family:var(--f-display);font-weight:600;font-size:1.1rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:6px 12px;border-radius:4px;white-space:nowrap}
+.mtabs button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+h2{font-family:var(--f-display);font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:1.1rem;margin:0}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.banner{background:var(--warn-soft);color:var(--warn);border-radius:6px;padding:10px 14px;font-size:.9rem}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* buttons */
+button{cursor:pointer;font-weight:600;border-radius:4px;border:1px solid var(--line);background:var(--panel);padding:8px 14px}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);text-transform:uppercase;letter-spacing:.05em;font-family:var(--f-display);font-size:1.05rem;padding:8px 20px}
+button.small{padding:4px 9px;font-size:.82rem;font-weight:500}
+button.danger{color:var(--warn);border-color:var(--warn)}
+button:disabled{opacity:.5;cursor:not-allowed}
+
+/* manager check-in form */
+.checkin{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;display:grid;gap:14px}
+.checkin-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.field{display:grid;gap:4px;min-width:0}
+.field input,.field select{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:9px 10px;width:100%;min-width:0}
+.field input.num{font-family:var(--f-mono)}
+.field .hint{font-size:.75rem;color:var(--muted);min-height:1em}
+.net-box{display:grid;gap:4px;align-content:start}
+.net-val{font-family:var(--f-mono);font-size:1.35rem;padding:6px 0}
+.net-val.bad{color:var(--warn)}
+.form-foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.msg{font-size:.88rem;color:var(--muted)}
+.msg.err{color:var(--warn)}.msg.ok{color:var(--good)}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap}
+
+.placards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.placard{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:grid;gap:2px}
+.placard .big{font-family:var(--f-display);font-weight:700;font-size:2rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.placard .small-note{font-size:.8rem;color:var(--muted)}
+.breakdowns{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.bd{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:10px;min-width:0}
+.bars{display:grid;gap:10px}
+.bar-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:.9rem}
+.bar-row .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-row .val{color:var(--muted);font-size:.82rem}
+.bar{grid-column:1/-1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.empty-note{color:var(--muted);font-size:.9rem;margin:0}
+
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:6px;display:grid;min-width:0}
+.sheet-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:14px;border-bottom:1px solid var(--line)}
+.tools-r{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tools-r input{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:7px 10px;width:200px;max-width:100%}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:7px 12px;font-weight:500;background:transparent}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.tbl-wrap{overflow-x:auto;scrollbar-width:none}
+.tbl-wrap::-webkit-scrollbar{display:none}
+/* side-to-side bar that stays pinned to the bottom of the screen while the yard sheet is in view */
+.hbar{position:sticky;bottom:0;z-index:5;overflow-x:auto;overflow-y:hidden;height:18px;background:var(--bg);border-top:1px solid var(--line)}
+.hbar[hidden]{display:none}
+.hbar>div{height:1px}
+.hbar::-webkit-scrollbar{height:14px}
+.hbar::-webkit-scrollbar-track{background:var(--bg)}
+.hbar::-webkit-scrollbar-thumb{background:var(--muted, #8a8f98);border-radius:7px;border:3px solid var(--bg)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;cursor:pointer;user-select:none}
+th.r,td.r{text-align:right}
+th[aria-sort="ascending"]::after{content:" ▲"}th[aria-sort="descending"]::after{content:" ▼"}
+tbody tr:hover{background:var(--bg)}
+.tnum{font-family:var(--f-mono);font-weight:500;background:var(--accent-soft);border:1px solid var(--accent);border-radius:3px;padding:1px 7px}
+.pill{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em}
+.pill.in{background:var(--good-soft);color:var(--good)}
+.pill.out{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.pill.open{background:var(--accent-soft);color:var(--ink);border:1px solid var(--accent)}
+.pill.done{background:var(--good);color:var(--panel)}
+.flag{color:var(--warn);font-weight:600}
+.row-actions{display:flex;gap:6px;justify-content:flex-end}
+tfoot td{font-weight:600;border-bottom:0;background:var(--bg)}
+.sheet-empty{padding:32px 16px;text-align:center;color:var(--muted);display:grid;gap:6px;justify-items:center}
+.sheet-empty strong{color:var(--ink);font-family:var(--f-display);text-transform:uppercase;letter-spacing:.05em;font-size:1.1rem}
+.edit-input{font-size:.88rem;width:110px;padding:4px 6px;border:1px solid var(--line);border-radius:3px;background:var(--bg)}
+.edit-input.num{font-family:var(--f-mono)}
+.sub{font-size:.78rem;color:var(--muted)}
+
+/* employees tab */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;display:grid;gap:12px;min-width:0}
+.addrow{display:flex;gap:8px;flex-wrap:wrap}
+.addrow input{flex:1 1 220px;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:10px 12px}
+.emp{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.emp:first-child{border-top:0}
+.emp .nm{font-family:var(--f-display);font-weight:700;font-size:1.35rem;line-height:1.1}
+.emp .linkrow{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.emp .linkrow input{flex:1 1 240px;min-width:0;font-family:var(--f-mono);font-size:.8rem;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+.steps{margin:0;padding-left:20px;display:grid;gap:6px;font-size:.92rem}
+
+/* clicker */
+.clk{max-width:900px;width:100%;margin:0 auto;display:grid;gap:14px}
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-top:6px}
+.crumbs button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 12px;font-weight:600;font-size:.9rem;display:inline-flex;gap:6px;align-items:baseline;max-width:100%}
+.crumbs button small{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.crumbs button.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.crumbs button.set{border-color:var(--accent);background:var(--accent-soft)}
+.crumbs button.restart{margin-left:auto;border-color:var(--warn);color:var(--warn);background:var(--panel);font-size:.95rem;padding:8px 14px}
+.crumbs button:disabled{opacity:.45}
+.qhead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.q{font-family:var(--f-display);font-weight:700;font-size:2.4rem;line-height:1;margin:0;text-transform:uppercase;letter-spacing:.01em;text-wrap:balance}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.tile{min-height:96px;background:var(--panel);border:1px solid var(--line);border-left:8px solid var(--accent);border-radius:8px;padding:12px 14px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;gap:6px;touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:transform .06s}
+.tile:active{transform:scale(.98)}
+.tile b{font-family:var(--f-display);font-weight:700;font-size:1.6rem;line-height:1.05;overflow-wrap:anywhere}
+.tile span{font-size:.82rem;color:var(--muted);font-weight:500}
+.tile.pick{border-left-color:var(--ink);background:var(--accent-soft)}
+.dirgroup{display:grid;gap:10px}
+.dirhead{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:1rem}
+.dirtag{display:inline-block;padding:4px 12px;border-radius:4px;font-size:1.15rem;letter-spacing:.08em}
+.ib .dirtag{background:var(--good);color:var(--panel)}
+.ob .dirtag{background:var(--accent);color:var(--accent-ink)}
+.tile.ib{border-left-color:var(--good)}
+.tile.ob{border-left-color:var(--accent)}
+.ul .dirtag{background:var(--ink);color:var(--panel)}
+.tile.ul{border-left-color:var(--ink)}
+.tile.oos{border-left-color:var(--warn)}
+.gs{background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--good);border-radius:6px;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.gs .gs-info{flex:1 1 280px;min-width:0;display:grid;gap:2px}
+.gs .gs-info b{font-family:var(--f-display);font-weight:700;font-size:1.15rem;text-transform:uppercase;letter-spacing:.04em}
+.gs a{color:var(--ink);font-weight:600;overflow-wrap:anywhere}
+.gs input{flex:1 1 280px;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:9px 10px}
+.gs .msg{width:100%}
+.tile.new{border-style:dashed;border-left-style:solid;border-left-color:var(--muted)}
+.tile.new b{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{font-family:var(--f-mono);font-size:1.05rem;padding:10px 14px;border-radius:6px;background:var(--panel);min-height:48px}
+.padwrap{display:grid;gap:12px;grid-template-columns:minmax(0,1fr);max-width:460px;width:100%}
+.display{display:flex;align-items:baseline;justify-content:space-between;gap:10px;background:var(--panel);border:2px solid var(--ink);border-radius:8px;padding:12px 16px;min-height:76px}
+.display .v{font-family:var(--f-mono);font-size:2.4rem;line-height:1;overflow-wrap:anywhere;min-width:0}
+.display .v.ph{color:var(--line)}
+.display small{font-size:.9rem;color:var(--muted);font-weight:600}
+.display input{font-family:var(--f-mono);font-size:2rem;width:100%;min-width:0;border:0;background:transparent;text-transform:uppercase;padding:0}
+.display input:focus{outline:none}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.keypad button{min-height:66px;font-family:var(--f-mono);font-size:1.7rem;font-weight:500;border-radius:8px;background:var(--panel);touch-action:manipulation}
+.keypad button:active{background:var(--accent-soft)}
+.keypad button.k-alt{font-family:var(--f-body);font-size:1.1rem;font-weight:600;color:var(--muted)}
+.next{min-height:64px;font-size:1.4rem!important;width:100%}
+.alt-row{display:flex;gap:8px;flex-wrap:wrap}
+.alt-row button{flex:1 1 140px;min-height:48px}
+.note{border-radius:8px;padding:10px 14px;font-size:.95rem;background:var(--accent-soft);border:1px solid var(--accent)}
+.note.bad{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+.note label{display:flex;gap:10px;align-items:flex-start;font-weight:600;color:var(--ink)}
+.note input{width:22px;height:22px;flex:none;accent-color:var(--accent);margin:0}
+.review{background:var(--panel);border:1px solid var(--line);border-radius:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));overflow:hidden}
+.review div{padding:14px 16px;border-bottom:1px solid var(--line);display:grid;gap:2px;min-width:0}
+.review b{font-family:var(--f-display);font-weight:700;font-size:1.7rem;line-height:1.1;overflow-wrap:anywhere}
+.review b.num{font-family:var(--f-mono);font-size:1.5rem;font-weight:500}
+.review .netcell{background:var(--accent-soft)}
+.save{min-height:76px;font-size:1.7rem!important;width:100%}
+.last{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--good);border-radius:8px}
+.last .tick{font-size:1.4rem;font-weight:700;color:var(--good)}
+.last .lw{flex:1;min-width:0;display:flex;flex-wrap:wrap;column-gap:10px;align-items:baseline;line-height:1.2}
+.last .lw small{width:100%;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.last .lw b{font-family:var(--f-display);font-size:1.3rem}
+.last .lw span{color:var(--muted);font-weight:600}
+.last.fresh{animation:fresh .6s ease-out}
+@keyframes fresh{0%{background:var(--good-soft)}100%{background:var(--panel)}}
+.center{padding:36px 16px;text-align:center;display:grid;gap:10px;justify-items:center}
+.center h2{font-size:1.6rem}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:500;max-width:calc(100% - 32px)}
+@media (max-width:560px){h1{font-size:1.35rem}.q{font-size:1.9rem}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile b{font-size:1.35rem}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<!-- Firebase (shared live data) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="backend.js"></script>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Trailer Yard</h1>
+    <span class="chip" id="roleChip" hidden>Manager</span>
+    <button type="button" class="chip who" id="whoChip" hidden title="Switch person"></button>
+    <div class="status"><span id="syncText">Connecting…</span><span class="sync" id="sync"></span></div>
+    <nav class="mtabs" id="mtabs" hidden aria-label="Sections">
+      <button type="button" data-view="sheet" aria-pressed="true">Yard sheet</button>
+      <button type="button" data-view="clicker" aria-pressed="false">Clicker</button>
+      <button type="button" data-view="employees" aria-pressed="false">Employees</button>
+    </nav>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <!-- ===== Manager: yard sheet ===== -->
+  <div id="sheetView" hidden style="display:grid;gap:20px">
+    <section class="gs" id="gsCard" aria-label="Google Sheet"></section>
+    <form class="checkin" id="form" autocomplete="off" novalidate>
+      <div class="checkin-head">
+        <h2 id="formTitle">Check in a trailer</h2>
+        <span class="label">Unloaded weight and net are added when it's unloaded or departs</span>
+      </div>
+      <div class="fields">
+        <label class="field"><span class="label">Trailer #</span>
+          <input id="f-trailer" class="num" placeholder="e.g. 53-1047" list="trailerList">
+          <span class="hint" id="trailerHint"></span></label>
+        <label class="field"><span class="label">Customer</span>
+          <input id="f-customer" placeholder="Customer name" list="customerList"><span class="hint"></span></label>
+        <label class="field" id="tiresField" hidden><span class="label">Tire count</span>
+          <input id="f-tires" class="num" inputmode="numeric" placeholder="tires"><span class="hint">Grade and Route are counted, not weighed</span></label>
+        <label class="field"><span class="label">Load type</span>
+          <select id="f-type"></select><span class="hint"></span></label>
+        <label class="field" id="inWeightField"><span class="label">Loaded weight</span>
+          <input id="f-inweight" class="num" inputmode="numeric" placeholder="lbs"><span class="hint">Inbound scale ticket. Managers only.</span></label>
+        <label class="field"><span class="label">Status</span>
+          <select id="f-status"></select><span class="hint"></span></label>
+        <label class="field" id="haulerField" hidden><span class="label">Hauler</span>
+          <select id="f-hauler"><option value="liberty">Liberty</option><option value="third">Third party</option></select><span class="hint">Chips, Shred, Whole tire</span></label>
+        <label class="field" id="reasonField" hidden><span class="label">OOS reason</span>
+          <input id="f-reason" placeholder="Why it's out of service"><span class="hint"></span></label>
+      </div>
+      <div class="form-foot">
+        <span class="msg" id="formMsg">Employees log trailers from the Clicker on their own links. You can also check one in here.</span>
+        <div class="row-btns">
+          <button type="button" id="copyBtn">Copy as CSV</button>
+          <button type="button" id="dlBtn" hidden>Download CSV</button>
+          <button type="submit" class="primary" id="submitBtn">Add to yard</button>
+        </div>
+      </div>
+    </form>
+
+    <section class="placards" aria-label="Yard summary">
+      <div class="placard"><span class="label">Trailers in yard</span><span class="big" id="s-count">0</span><span class="small-note" id="s-split">—</span></div>
+      <div class="placard"><span class="label">Net weight departed today</span><span class="big" id="s-net">0</span><span class="small-note" id="s-net-note">tons, from weights entered at departure</span></div>
+      <div class="placard"><span class="label">Grade tires in yard</span><span class="big" id="s-tires-grade">0</span><span class="small-note" id="s-tires-grade-note">on Grade trailers</span></div>
+      <div class="placard"><span class="label">Route tires in yard</span><span class="big" id="s-tires-route">0</span><span class="small-note" id="s-tires-route-note">on Route trailers</span></div>
+      <div class="placard"><span class="label">Logged today</span><span class="big" id="s-today">0</span><span class="small-note" id="s-todaynote">check-ins since midnight</span></div>
+      <div class="placard"><span class="label">Departed today</span><span class="big" id="s-out">0</span><span class="small-note">checked out since midnight</span></div>
+    </section>
+
+    <section class="breakdowns">
+      <div class="bd"><h2>In yard by customer</h2><div class="bars" id="byCustomer"></div></div>
+      <div class="bd"><h2>In yard by load type</h2><div class="bars" id="byType"></div></div>
+    </section>
+
+    <section class="sheet">
+      <div class="sheet-tools">
+        <h2>Yard sheet</h2>
+        <div class="tools-r">
+          <div class="seg" id="statusSeg" role="group" aria-label="Status filter">
+            <button type="button" data-status="in" aria-pressed="true">In yard</button>
+            <button type="button" data-status="done" aria-pressed="false">Completed</button>
+            <button type="button" data-status="out" aria-pressed="false">Departed</button>
+            <button type="button" data-status="all" aria-pressed="false">All</button>
+          </div>
+          <input id="search" type="search" placeholder="Search trailer, customer, employee" aria-label="Search">
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th data-k="trailer">Trailer #</th><th data-k="customer">Customer</th><th data-k="loadType">Load type</th><th data-k="ys">Status</th>
+            <th data-k="tires" class="r">Tires</th><th data-k="gross" class="r">Gross</th><th data-k="tare" class="r">Tare</th><th data-k="net" class="r">Net (tons)</th>
+            <th data-k="arrivedAt" aria-sort="descending">Checked in</th><th data-k="who">Logged by</th><th data-k="status">Yard</th>
+            <th aria-label="Actions"></th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+          <tfoot id="foot"></tfoot>
+        </table>
+      </div>
+      <div class="hbar" id="hbar" hidden aria-hidden="true"><div></div></div>
+      <div class="sheet-empty" id="sheetEmpty"></div>
+    </section>
+  </div>
+
+  <!-- ===== Manager: employees ===== -->
+  <div id="empView" hidden style="display:grid;gap:16px"></div>
+
+  <!-- ===== Clicker (employees, and managers on the Clicker tab) ===== -->
+  <div id="clkView" hidden></div>
+</div>
+
+<datalist id="trailerList"></datalist>
+<datalist id="customerList"><option value="N/A"></option></datalist>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+"use strict";
+const PAGE_URL = location.origin + location.pathname;
+const LOAD_TYPES = ["GRADE","ROUGH GRADE","DROP & HOOK","ROUTE","GATE","CHIPS","SHRED","WHOLE TIRE OUTBOUND","OUTBOUND","EMPTY"]; // inbound = Drop & Hook, Route, Gate
+const OUTBOUND = ["GRADE","ROUGH GRADE","CHIPS","SHRED","WHOLE TIRE OUTBOUND","OUTBOUND","EMPTY"]; // EMPTY: manager check-in only // CHIPS kept so older entries still count as outbound
+const USE_FOR = ["GRADE","ROUGH GRADE","CHIPS","SHRED","WHOLE TIRE OUTBOUND","OUTBOUND"]; // OUTBOUND = empty, not assigned yet // what an empty trailer can be set aside for
+const INBOUND = LOAD_TYPES.filter(t => !OUTBOUND.includes(t));
+// A trailer's direction: what the clicker recorded, else what its load type normally is.
+const directionOf = r => r.direction || (OUTBOUND.includes(r.loadType) ? "outbound" : "inbound");
+// Life of a trailer on the yard: an inbound entry is "open" until an employee logs the same trailer
+// as outbound, which closes it as "completed". It stays on the yard until a manager departs it.
+const phaseOf = r => r.phase || (directionOf(r) === "inbound" ? "open" : "");
+const yardLabel = r => r.status !== "in" ? "Departed" : phaseOf(r) === "completed" ? "Completed" : phaseOf(r) === "open" ? "Open" : "In yard";
+const yardPill = r => `<span class="pill ${r.status !== "in" ? "out" : phaseOf(r) === "completed" ? "done" : phaseOf(r) === "open" ? "open" : "in"}">${yardLabel(r)}</span>`;
+const STATUSES = [["empty","Empty"],["loading","Loading"],["loaded","Loaded"],["unloading","Unloading"],["unloaded","Unloaded"],["oos","Out of service"]];
+// The clicker's status choices. "Unloaded" isn't one: it's set from the Unloaded section of the load-type screen.
+const CLICKER_STATUSES = STATUSES.filter(([v]) => v !== "unloaded");
+const statusLabel = s => (STATUSES.find(x => x[0] === s) || [,"—"])[1];
+const HAULERS = { liberty:"Liberty", third:"Third party" };
+const STEPS = [["type","Load type"],["use","Used for"],["trailer","Trailer #"],["status","Status"],["hauler","Hauler"],["reason","OOS reason"],["tires","Tire count"],["loaded","Loaded weight"],["empty","Unloaded weight"],["note","Note"],["review","Save"]];
+const GS_SERVER = "Google Sheets";
+// Bumped whenever the Google Sheet layout changes. An open page older than the newest one that wrote
+// the sheet stops writing and reloads itself, so two versions never take turns redrawing the sheet.
+const PAGE_VERSION = 56;
+/*LAYOUT-START*/
+// ---- Yard Report sheet layout (mirrors the paper YARD REPORT form) ----
+const HAULER_TYPES = ["CHIPS","SHRED","WHOLE TIRE OUTBOUND"];
+const COUNT_TYPES = ["GRADE","ROUTE"]; // logged by tire count instead of weight
+const SHORT_TYPE = { "CHIPS":"CHIPS", "SHRED":"SHRED", "WHOLE TIRE OUTBOUND":"WHOLE TIRE" };
+function yardStatusOf(r){
+  if (r.yardStatus) return r.yardStatus;
+  const n = (r.loaded != null && r.empty != null) ? r.loaded - r.empty : null;
+  return n != null && n > 0 ? "loaded" : "empty";
+}
+// Which box on the paper report a trailer belongs in.
+function reportBucket(r){
+  const t = r.loadType || "", s = yardStatusOf(r);
+  if (s === "oos") return "oos";
+  // Once a trailer has been through the Unloaded section it stays in the UNLOADED box until it departs,
+  // even after it's closed out through Outbound.
+  if (r.unloadedAt) return "unloaded";
+  if (t === "OUTBOUND" || t === "EMPTY") return "obEmptyLiberty"; // empty outbound trailer not assigned to a load type yet: EMPTY OUTBOUND, under LIBERTY
+  if (s === "unloading") return "unloading";
+  if (s === "unloaded") return "unloaded"; // marked from the clicker's Unloaded section; moves out of its loaded box
+  if (t === "GRADE") return s === "empty" || s === "loading" ? "gradeLoading" : "gradeLoaded"; // empty Grade trailers set aside go under GRADE - LOADING
+  if (t === "ROUGH GRADE") return s === "empty" ? "gradeEmpty" : s === "loading" ? "roughLoading" : "roughLoaded";
+  if (HAULER_TYPES.includes(t)) {
+    const h = r.hauler === "third" ? "Third" : "Liberty";
+    return (s === "empty" ? "obEmpty" : s === "loading" ? "obLoading" : "obLoaded") + h;
+  }
+  if (t === "ROUTE") return s === "empty" ? "emptyRoute" : "loadedRoute";
+  if (t === "DROP & HOOK" || t.startsWith("DH")) return s === "empty" ? "emptyDH" : "dropHook"; // DH CAR/MIX/TRUCK are older entries
+  if (t === "GATE") return s === "empty" ? "customer" : "gate";
+  return "customer";
+}
+
+function yardReportGrid(records, dateLabel){
+  const B = {};
+  records.filter(r => r.status === "in")
+    .sort((a, b) => (a.arrivedAt || 0) - (b.arrivedAt || 0))
+    .forEach(r => { const k = reportBucket(r); (B[k] = B[k] || []).push(r); });
+  const get = k => B[k] || [];
+  const trl = r => String(r.trailer || "") + (COUNT_TYPES.includes(r.loadType) && r.tires != null && r.status === "in" && yardStatusOf(r) !== "empty" && yardStatusOf(r) !== "oos" ? ` (${Number(r.tires).toLocaleString("en-US")} tires)` : "");
+  const obl = r => `${trl(r)} (${SHORT_TYPE[r.loadType] || r.loadType})`;
+  const cus = r => `${trl(r)} · ${r.customer || ""}`;
+
+  const H = t => [{ style:"h", cells:[t, ""], merge:true }];
+  const S = t => [{ style:"s", cells:[t, ""], merge:true }];
+  const C = (a, b) => [{ style:"c", cells:[a, b] }];
+  const pad = (rows, min) => { while (rows.length < min) rows.push({ style:"d", cells:["", ""] }); return rows; };
+  // A list grows past its printed box when it fills up, always leaving one open row at the bottom.
+  const grow = (rows, min) => pad(rows, Math.max(min, rows.length + 1));
+  const P = (k, min) => grow(get(k).map(r => ({ style:"d", cells:[trl(r), r.customer || ""] })), min);
+  const L = (k, min, f) => {
+    const items = get(k).map(f || trl), rows = [];
+    for (let i = 0; i < items.length; i += 2) rows.push({ style:"d", cells:[items[i], items[i + 1] || ""] });
+    return grow(rows, min);
+  };
+  const T = (ka, kb, min) => {
+    const a = get(ka).map(trl), b = get(kb).map(trl), rows = [];
+    for (let i = 0; i < Math.max(a.length, b.length); i++) rows.push({ style:"d", cells:[a[i] || "", b[i] || ""] });
+    return grow(rows, min);
+  };
+  const OB = (title, key, minThird, minLib) => [
+    ...H(title), ...S("THIRD PARTY HAULER TRAILERS"), ...L(key + "Third", minThird, obl), ...S("LIBERTY"), ...L(key + "Liberty", minLib, obl)
+  ];
+  const bands = [
+    [ ...H("GRADE - LOADING"), ...C("TRAILER#","CUSTOMER"), ...P("gradeLoading", 7),
+      ...H("GRADE - LOADED"), ...C("TRAILER#","CUSTOMER"), ...P("gradeLoaded", 8),
+      ...H("GRADE-EMPTY"), ...L("gradeEmpty", 3),
+      ...H("ROUGH GRADE"), ...S("LOADING"), ...L("roughLoading", 1), ...S("LOADED"), ...L("roughLoaded", 3),
+      ...H("EMPTY TRAILERS"), ...C("ROUTE","DROP & HOOK"), ...T("emptyRoute", "emptyDH", 6), ...S("OUTBOUND"), ...L("emptyOut", 2),
+      ...H("CUSTOMER TRAILERS"), ...L("customer", 2, cus) ],
+    [ ...H("LOADED TRAILERS"), ...S("ROUTE"), ...L("loadedRoute", 7, r => yardStatusOf(r) === "loading" ? { v:trl(r), y:true } : trl(r)),
+      ...H("DROP & HOOK"), ...C("TRAILER#","CUSTOMER"), ...P("dropHook", 14),
+      ...H("GATE CUSTOMER LOADED"), ...C("TRAILER#","CUSTOMER"), ...P("gate", 3),
+      ...H("TRAILERS UNLOADING"), ...C("TRAILER#","CUSTOMER"), ...P("unloading", 5),
+      ...H("UNLOADED"), ...C("TRAILER#","LOAD TYPE"), ...grow(get("unloaded").map(r => ({ style:"d", cells:[trl(r), r.inbound && r.inbound.loadType ? `${r.inbound.loadType} → ${r.loadType}` : (r.loadType || "")] })), 5) ],
+    [ ...OB("EMPTY OUTBOUND", "obEmpty", 3, 7), ...OB("LOADING OUTBOUND", "obLoading", 3, 8), ...OB("LOADED OUTBOUND", "obLoaded", 3, 11) ]
+  ];
+  const n = Math.max(...bands.map(b => b.length));
+  bands.forEach(b => pad(b, n));
+
+  const oos = get("oos").map(r => [trl(r), r.oosReason || ""]);
+  const oosRows = [];
+  for (let i = 0; i < oos.length; i += 3) oosRows.push([...(oos[i] || ["",""]), ...(oos[i + 1] || ["",""]), ...(oos[i + 2] || ["",""])]);
+  while (oosRows.length < Math.max(4, Math.ceil(oos.length / 3) + 1)) oosRows.push(["","","","","",""]);
+
+  // Assemble the full grid: rows of 6 cells {v, s}
+  const grid = [];
+  grid.push([{ v:"DATE: " + dateLabel, s:"date" }, { v:"", s:"date" }, { v:"YARD REPORT", s:"title" }, { v:"", s:"title" }, { v:"", s:"blank" }, { v:"", s:"blank" }]);
+  grid.push(Array.from({ length:6 }, () => ({ v:"", s:"blank" })));
+  const merges = [[0,0,0,2], [0,0,2,4]]; // [r0, r1(inclusive), c0, c1(exclusive)]
+  const top = grid.length;
+  for (let i = 0; i < n; i++) {
+    const row = [];
+    bands.forEach((b, bi) => {
+      const x = b[i];
+      // a cell can be { v, y:true } to shade it yellow (Route trailer still loading)
+      const cell = c => c && typeof c === "object" ? { v:c.v, s:c.y ? "y" : x.style } : { v:c, s:x.style };
+      row.push(cell(x.cells[0]), cell(x.cells[1]));
+      if (x.merge) merges.push([top + i, top + i, bi * 2, bi * 2 + 2]);
+    });
+    grid.push(row);
+  }
+  const oosTop = grid.length;
+  grid.push([{ v:"OUT OF SERVICE", s:"h" }, ...Array.from({ length:5 }, () => ({ v:"", s:"h" }))]);
+  merges.push([oosTop, oosTop, 0, 6]);
+  grid.push(["TRAILER #","OOS REASON","TRAILER #","OOS REASON","TRAILER #","OOS REASON"].map(v => ({ v, s:"c" })));
+  oosRows.forEach(r => grid.push(r.map(v => ({ v, s:"d" }))));
+  const counts = {}; Object.keys(B).forEach(k => counts[k] = B[k].length);
+  return { grid, merges, top, bandRows:n, oosTop, end:grid.length, counts };
+}
+
+// Rough on-screen width of text in Arial, so columns can be widened until every entry fits on one line.
+// On-screen width of text in Arial (character widths in 1/1000 em), so columns can be widened
+// until every entry fits on one line. A little extra room is added so nothing gets clipped.
+const ARIAL_W = { A:667,B:667,C:722,D:722,E:667,F:611,G:778,H:722,I:278,J:500,K:667,L:556,M:833,N:722,O:778,P:667,Q:778,R:722,S:667,T:611,
+  U:722,V:667,W:944,X:667,Y:667,Z:611, " ":278, "-":333, "(":333, ")":333, "&":667, "#":556, "/":278, ".":278, ",":278, "'":191, "→":1000, i:222, j:222, l:222, f:278, t:278, r:333, m:833, w:722 };
+function textPx(str, size, bold){
+  let em = 0;
+  for (const ch of String(str || "")) em += ARIAL_W[ch] || (/[0-9]/.test(ch) ? 556 : /[a-z]/.test(ch) ? 556 : 600);
+  const pt = (size || 10) * 4 / 3; // points to pixels
+  return Math.ceil(em / 1000 * pt * (bold ? 1.08 : 1) * 1.06) + 22;
+}
+function yardReportRequests(g, sheetId){
+  const rgb = (r, gg, b) => ({ red:r, green:gg, blue:b });
+  const base = { textFormat:{ fontFamily:"Arial", fontSize:10, bold:false }, horizontalAlignment:"CENTER", verticalAlignment:"MIDDLE", wrapStrategy:"CLIP", backgroundColor:rgb(1,1,1) };
+  const fmt = s => {
+    const f = JSON.parse(JSON.stringify(base));
+    if (s === "h") { f.textFormat.bold = true; f.backgroundColor = rgb(0.85,0.85,0.85); }
+    if (s === "y") f.backgroundColor = rgb(1, 0.95, 0.4); // yellow: Route trailer loading
+    if (s === "s" || s === "c") f.textFormat.bold = true;
+    if (s === "s") f.textFormat.fontSize = 9;
+    if (s === "title") { f.textFormat.bold = true; f.textFormat.fontSize = 16; }
+    if (s === "date") { f.textFormat.bold = true; f.textFormat.fontSize = 13; f.horizontalAlignment = "LEFT"; }
+    return f;
+  };
+  const range = (r0, r1, c0, c1) => ({ sheetId, startRowIndex:r0, endRowIndex:r1, startColumnIndex:c0, endColumnIndex:c1 });
+  const thin = { style:"SOLID", colorStyle:{ rgbColor:rgb(0,0,0) } };
+  const thick = { style:"SOLID_THICK", colorStyle:{ rgbColor:rgb(0,0,0) } };
+  const req = [];
+  // base look for every cell, then the text, then bold/gray for headers (kept small so the request stays light)
+  req.push({ repeatCell:{ range:range(0, g.end, 0, 6), cell:{ userEnteredFormat:fmt("d") }, fields:"userEnteredFormat" } });
+  req.push({ updateCells:{
+    start:{ sheetId, rowIndex:0, columnIndex:0 },
+    rows: g.grid.map(row => ({ values: row.map(c => c.v === "" ? {} : { userEnteredValue:{ stringValue:String(c.v) } }) })),
+    fields:"userEnteredValue"
+  }});
+  g.grid.forEach((row, ri) => {
+    let c = 0;
+    while (c < 6) {
+      const s = row[c].s; let e = c + 1;
+      while (e < 6 && row[e].s === s) e++;
+      if (s !== "d" && s !== "blank") req.push({ repeatCell:{ range:range(ri, ri + 1, c, e), cell:{ userEnteredFormat:fmt(s) }, fields:"userEnteredFormat" } });
+      c = e;
+    }
+  });
+  g.merges.forEach(([r0, r1, c0, c1]) => req.push({ mergeCells:{ range:range(r0, r1 + 1, c0, c1), mergeType:"MERGE_ALL" } }));
+  // three column bands, then the out-of-service block
+  [0, 2, 4].forEach(c0 => req.push({ updateBorders:{ range:range(g.top, g.top + g.bandRows, c0, c0 + 2),
+    top:thick, bottom:thick, left:thick, right:thick, innerHorizontal:thin, innerVertical:thin } }));
+  req.push({ updateBorders:{ range:range(g.oosTop, g.end, 0, 6), top:thick, bottom:thick, left:thick, right:thick, innerHorizontal:thin, innerVertical:thin } });
+  [2, 4].forEach(c0 => req.push({ updateBorders:{ range:range(g.oosTop + 1, g.end, c0, c0 + 2), left:thick } }));
+  // each column is at least 135px, wider when an entry needs it (merged headings are left out)
+  const widths = [0, 1, 2, 3, 4, 5].map(ci => g.grid.reduce((w, row, ri) => {
+    const c = row[ci]; if (!c || !c.v || ri < g.top || c.s === "h" || c.s === "s" || c.s === "title" || c.s === "date") return w;
+    return Math.max(w, textPx(c.v, 10, c.s === "c"));
+  }, 135));
+  widths.forEach((px, i) => req.push({ updateDimensionProperties:{ range:{ sheetId, dimension:"COLUMNS", startIndex:i, endIndex:i + 1 }, properties:{ pixelSize:Math.min(px, 420) }, fields:"pixelSize" } }));
+  req.push({ updateDimensionProperties:{ range:{ sheetId, dimension:"ROWS", startIndex:0, endIndex:g.end }, properties:{ pixelSize:20 }, fields:"pixelSize" } });
+  req.push({ updateDimensionProperties:{ range:{ sheetId, dimension:"ROWS", startIndex:0, endIndex:1 }, properties:{ pixelSize:32 }, fields:"pixelSize" } });
+  req.push({ updateSheetProperties:{ properties:{ sheetId, gridProperties:{ hideGridlines:true } }, fields:"gridProperties.hideGridlines" } });
+  return req;
+}
+// ---- "Unloaded Trailers" tab: a running log of every trailer marked unloaded ----
+// rows: [{ at, trailer, loadType, customer, gross, tare, tires, by, status, departedAt }] newest first
+const UNLOAD_TAB = "Unloaded Trailers"; // old single log tab, replaced by one "Unloaded MM-DD-YYYY" tab per day
+const unloadTabFor = day => "Unloaded " + day;
+function sheetSerial(ms){ // local date-time as a Sheets date serial
+  const d = new Date(ms);
+  return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes()) / 86400000 + 25569;
+}
+function unloadReportRequests(rows, sheetId, updatedLabel, dateLabel){
+  const rgb = (r, g, b) => ({ red:r, green:g, blue:b });
+  const range = (r0, r1, c0, c1) => ({ sheetId, startRowIndex:r0, endRowIndex:r1, startColumnIndex:c0, endColumnIndex:c1 });
+  const HEAD = ["DATE UNLOADED","TRAILER #","LOAD TYPE","CUSTOMER","LOADED WEIGHT (LBS)","UNLOADED WEIGHT (LBS)","NET (TONS)","TIRES","UNLOADED BY","STATUS","DEPARTED"];
+  const top = 3, end = top + 1 + Math.max(rows.length, 1);
+  const str = v => ({ userEnteredValue:{ stringValue:String(v) } });
+  const num = v => v == null || v === "" ? {} : { userEnteredValue:{ numberValue:Number(v) } };
+  const date = ms => ms ? { userEnteredValue:{ numberValue:sheetSerial(ms) } } : {};
+  const f = x => ({ userEnteredValue:{ formulaValue:x } });
+  const data = rows.map((r, i) => {
+    const n = top + 2 + i; // 1-based sheet row
+    return { values:[ date(r.at), str(r.trailer || ""), str(r.loadType || ""), str(r.customer || ""), num(r.gross), num(r.tare),
+      f(`=IF(AND(ISNUMBER(E${n}),ISNUMBER(F${n})),ROUND((E${n}-F${n})/2000,2),"")`), num(r.tires), str(r.by || ""), str(r.status || ""), date(r.departedAt) ] };
+  });
+  if (!rows.length) data.push({ values:[ str("No unloaded trailers yet") ] });
+  const req = [];
+  req.push({ repeatCell:{ range:range(0, end, 0, 11), cell:{ userEnteredFormat:{ textFormat:{ fontFamily:"Arial", fontSize:10 }, verticalAlignment:"MIDDLE" } }, fields:"userEnteredFormat" } });
+  req.push({ updateCells:{ start:{ sheetId, rowIndex:0, columnIndex:0 }, fields:"userEnteredValue", rows:[
+    { values:[ str("UNLOADED TRAILERS"), {}, {}, {}, str(dateLabel ? "DATE: " + dateLabel : "") ] },
+    { values:[ str("Trailers"), f(`=COUNTA(B${top + 2}:B)`), str("Total net (tons)"), f(`=SUM(G${top + 2}:G)`), str(""), str(updatedLabel || "") ] },
+    { values:[] },
+    { values: HEAD.map(str) },
+    ...data ] } });
+  req.push({ repeatCell:{ range:range(0, 1, 0, 11), cell:{ userEnteredFormat:{ textFormat:{ fontFamily:"Arial", fontSize:16, bold:true } } }, fields:"userEnteredFormat.textFormat" } });
+  req.push({ mergeCells:{ range:range(0, 1, 0, 4), mergeType:"MERGE_ALL" } }, { mergeCells:{ range:range(0, 1, 4, 7), mergeType:"MERGE_ALL" } });
+  req.push({ repeatCell:{ range:range(1, 2, 0, 11), cell:{ userEnteredFormat:{ textFormat:{ fontFamily:"Arial", fontSize:10, bold:true, foregroundColor:rgb(0.3,0.3,0.3) } } }, fields:"userEnteredFormat.textFormat" } });
+  req.push({ repeatCell:{ range:range(1, 2, 3, 4), cell:{ userEnteredFormat:{ numberFormat:{ type:"NUMBER", pattern:"#,##0" }, horizontalAlignment:"LEFT" } }, fields:"userEnteredFormat.numberFormat,userEnteredFormat.horizontalAlignment" } });
+  req.push({ repeatCell:{ range:range(top, top + 1, 0, 11), cell:{ userEnteredFormat:{ textFormat:{ fontFamily:"Arial", fontSize:10, bold:true }, backgroundColor:rgb(0.85,0.85,0.85), horizontalAlignment:"CENTER", wrapStrategy:"WRAP", verticalAlignment:"MIDDLE" } }, fields:"userEnteredFormat" } });
+  req.push({ repeatCell:{ range:range(top + 1, end, 0, 1), cell:{ userEnteredFormat:{ numberFormat:{ type:"DATE_TIME", pattern:"m/d/yyyy h:mm am/pm" } } }, fields:"userEnteredFormat.numberFormat" } });
+  req.push({ repeatCell:{ range:range(top + 1, end, 10, 11), cell:{ userEnteredFormat:{ numberFormat:{ type:"DATE_TIME", pattern:"m/d/yyyy h:mm am/pm" } } }, fields:"userEnteredFormat.numberFormat" } });
+  req.push({ repeatCell:{ range:range(top + 1, end, 4, 8), cell:{ userEnteredFormat:{ numberFormat:{ type:"NUMBER", pattern:"#,##0" }, horizontalAlignment:"RIGHT" } }, fields:"userEnteredFormat.numberFormat,userEnteredFormat.horizontalAlignment" } });
+  req.push({ repeatCell:{ range:range(top + 1, end, 6, 7), cell:{ userEnteredFormat:{ numberFormat:{ type:"NUMBER", pattern:"#,##0.00" } } }, fields:"userEnteredFormat.numberFormat" } });
+  req.push({ repeatCell:{ range:range(1, 2, 3, 4), cell:{ userEnteredFormat:{ numberFormat:{ type:"NUMBER", pattern:"#,##0.00" } } }, fields:"userEnteredFormat.numberFormat" } });
+  req.push({ updateBorders:{ range:range(top, end, 0, 11), top:{ style:"SOLID_MEDIUM", colorStyle:{ rgbColor:rgb(0,0,0) } }, bottom:{ style:"SOLID", colorStyle:{ rgbColor:rgb(0,0,0) } },
+    left:{ style:"SOLID", colorStyle:{ rgbColor:rgb(0,0,0) } }, right:{ style:"SOLID", colorStyle:{ rgbColor:rgb(0,0,0) } },
+    innerHorizontal:{ style:"SOLID", colorStyle:{ rgbColor:rgb(0.75,0.75,0.75) } }, innerVertical:{ style:"SOLID", colorStyle:{ rgbColor:rgb(0.75,0.75,0.75) } } } });
+  req.push({ repeatCell:{ range:range(top + 1, end, 0, 11), cell:{ userEnteredFormat:{ wrapStrategy:"CLIP" } }, fields:"userEnteredFormat.wrapStrategy" } });
+  const textCols = { 1:"trailer", 2:"loadType", 3:"customer", 8:"by", 9:"status" };
+  [150, 90, 130, 140, 110, 120, 100, 70, 110, 100, 150].map((px, i) => textCols[i]
+    ? rows.reduce((w, r) => Math.max(w, textPx(r[textCols[i]], 10, false)), px) : px).forEach((px, i) =>
+    req.push({ updateDimensionProperties:{ range:{ sheetId, dimension:"COLUMNS", startIndex:i, endIndex:i + 1 }, properties:{ pixelSize:Math.min(px, 420) }, fields:"pixelSize" } }));
+  req.push({ updateDimensionProperties:{ range:{ sheetId, dimension:"ROWS", startIndex:top, endIndex:top + 1 }, properties:{ pixelSize:36 }, fields:"pixelSize" } });
+  req.push({ updateSheetProperties:{ properties:{ sheetId, gridProperties:{ frozenRowCount:top + 1 } }, fields:"gridProperties.frozenRowCount" } });
+  return { req, rowCount: Math.max(end + 5, 30) };
+}
+/*LAYOUT-END*/
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => (n == null || isNaN(n)) ? "—" : Math.round(n).toLocaleString("en-US");
+// net weight shown in tons (2,000 lbs) to two decimal places
+const fmtT = lbs => (lbs == null || isNaN(lbs)) ? "—" : (lbs / 2000).toLocaleString("en-US", { minimumFractionDigits:2, maximumFractionDigits:2 });
+const parseW = v => { const s = String(v ?? "").replace(/[,\s]/g, ""); if (!s) return null; const n = Number(s); return isFinite(n) ? n : NaN; };
+const netOf = r => (r.loaded != null && r.empty != null) ? r.loaded - r.empty : null;
+// Gross / tare / net live in the manager-only "weights" store (one doc per trailer entry),
+// entered when a trailer departs. Employees can't read it. Older entries may still carry loaded/empty.
+const wOf = r => {
+  // Every weight entry for this trailer (manager's, the check-in, the unload), oldest first;
+  // the latest loaded weight and the latest unloaded weight make the net.
+  const list = [...((S.empWeights && S.empWeights[r.id]) || [])];
+  if (S.weights && S.weights[r.id]) list.push(S.weights[r.id]);
+  list.sort((a, b) => (a.at || 0) - (b.at || 0));
+  let gross = r.loaded ?? null, tare = r.empty ?? null;
+  list.forEach(w => { if (w.gross != null) gross = w.gross; if (w.tare != null) tare = w.tare; });
+  return { gross, tare, net: gross != null && tare != null ? gross - tare : null };
+};
+const when = ms => ms ? new Date(ms).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "—";
+const clock = ms => new Date(ms).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+const midnight = () => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); };
+const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSet = (k,v) => { try { localStorage.setItem(k,v); } catch {} };
+const rid = () => Date.now().toString(36).slice(-4) + Math.random().toString(36).slice(2,5);
+const typeOptions = cur => {
+  const list = cur && !LOAD_TYPES.includes(cur) ? [...LOAD_TYPES, cur] : LOAD_TYPES;
+  return `<option value="" disabled ${cur ? "" : "selected"}>Select load type</option>` + list.map(t => `<option value="${esc(t)}" ${t === cur ? "selected" : ""}>${esc(t)}</option>`).join("");
+};
+
+let toastT;
+function toast(t){ const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, 3200); }
+function setSync(cls, text){ $("sync").className = "sync " + (cls||""); $("syncText").textContent = text || ""; }
+
+const S = {
+  db:null, user:null, dl:null, mcp:null, me:null, isManager:false, isOwner:false, managerIds:[], people:[], profiles:{}, canWrite:true, connected:false,
+  gs:null, gsReady:false, gsEdit:false, gsDraft:"", gsBusy:false, gsMsg:"", gsMsgCls:"",
+  records:[], employees:[], empReady:false, weights:{}, empWeights:{}, departId:null,
+  view:"sheet", linkEmp:"", emp:"",
+  // sheet
+  statusFilter:"in", sortKey:"arrivedAt", sortDir:-1, query:"", editingId:null, confirmId:null, rowEditId:null,
+  // employees tab
+  empDraft:"", confirmEmp:null,
+  // clicker
+  step:"type", e:{}, pad:"", kb:false, newCust:false, checkoutDup:true, last:null, flash:false, saving:false
+};
+
+/* ---------- who is using the page ---------- */
+// "Manager" is always on the Who's logging list, for managers opening a shared link.
+const MGR_PICK = { id:"manager", name:"Manager", active:true };
+const empById = id => id === "manager" ? MGR_PICK : (S.employees.find(x => x.id === id) || null);
+const activeEmps = () => S.employees.filter(x => x.active !== false);
+function readHash(){ let h = ""; try { h = decodeURIComponent((location.hash||"").replace(/^#/,"")); } catch {} return /^e-[A-Za-z0-9._~-]+$/.test(h) ? h : ""; }
+function applyHash(){ S.linkEmp = readHash(); S.emp = S.linkEmp || lsGet("ty-emp") || ""; }
+window.addEventListener("hashchange", () => { applyHash(); route(); });
+const managerUI = () => S.isManager && !S.linkEmp;
+// Manager page: the owner, anyone on the owner's Managers list, or anyone who picks "Manager" on Who's logging.
+function computeManager(){
+  if (!S.db) return true;
+  return !!S.isOwner || !!(S.me && (S.managerIds || []).includes(S.me)) || (!S.linkEmp && S.emp === "manager");
+}
+function applyManager(){
+  const was = S.isManager;
+  S.isManager = computeManager();
+  if (S.isManager && !was) { startManagerFeeds(); S.view = "sheet"; }
+  if (was !== S.isManager) { S.e = {}; S.step = "type"; }
+}
+const linkDead = () => S.linkEmp && S.empReady && !(empById(S.linkEmp) && empById(S.linkEmp).active !== false);
+const needPicker = () => !S.isManager && !S.linkEmp && S.empReady && S.emp !== "manager" && !activeEmps().find(x => x.id === S.emp);
+const whoName = r => r.empName || (r.role === "manager" ? "Manager" : "—");
+
+/* ---------- top-level routing ---------- */
+function route(){
+  const mgr = managerUI();
+  $("mtabs").hidden = !mgr;
+  $("roleChip").hidden = !mgr;
+  const pickedMgr = mgr && S.emp === "manager" && !S.isOwner && !(S.me && (S.managerIds || []).includes(S.me));
+  const emp = pickedMgr ? empById("manager") : (!mgr && empById(S.emp));
+  $("whoChip").hidden = !emp; if (emp) $("whoChip").textContent = emp.name + (S.linkEmp ? "" : " ⇄");
+  const view = mgr ? S.view : "clicker";
+  document.querySelectorAll("#mtabs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === view));
+  $("sheetView").hidden = view !== "sheet";
+  $("empView").hidden = view !== "employees";
+  $("clkView").hidden = view !== "clicker";
+  if (view === "sheet") renderSheet();
+  if (view === "employees") renderEmployees();
+  if (view === "clicker") renderClicker();
+}
+$("whoChip").addEventListener("click", () => { if (S.linkEmp) return; S.emp = ""; lsSet("ty-emp", ""); S.e = {}; S.step = "type"; applyManager(); route(); });
+$("mtabs").addEventListener("click", e => { const b = e.target.closest("button[data-view]"); if (!b) return; S.view = b.dataset.view; lsSet("ty-view", S.view); route(); window.scrollTo(0,0); });
+
+/* =====================================================================
+   MANAGER SHEET
+   ===================================================================== */
+const form = $("form"), msg = $("formMsg");
+const setMsg = (t, cls) => { msg.textContent = t; msg.className = "msg" + (cls ? " " + cls : ""); };
+$("f-type").innerHTML = typeOptions("");
+const statusOptions = cur => (cur ? "" : `<option value="" disabled selected>Select status</option>`) + STATUSES.map(([v, l]) => `<option value="${v}" ${v === cur ? "selected" : ""}>${l}</option>`).join("");
+$("f-status").innerHTML = statusOptions("");
+function syncFormFields(){
+  $("haulerField").hidden = !HAULER_TYPES.includes($("f-type").value);
+  $("reasonField").hidden = $("f-status").value !== "oos";
+  const counted = COUNT_TYPES.includes($("f-type").value);
+  $("tiresField").hidden = !counted;
+  $("inWeightField").hidden = counted || $("f-type").value === "EMPTY" || $("f-status").value === "empty";
+}
+["f-type","f-status"].forEach(id => $(id).addEventListener("change", syncFormFields));
+
+
+const lastVisit = t => S.records.filter(r => (r.trailer||"") === t).sort((a,b) => (b.arrivedAt||0) - (a.arrivedAt||0))[0] || null;
+const inYard = t => S.records.find(r => r.status === "in" && r.trailer === t) || null;
+$("f-trailer").addEventListener("change", () => {
+  const t = $("f-trailer").value.trim().toUpperCase(), prev = lastVisit(t), hint = $("trailerHint");
+  if (!prev) { hint.textContent = ""; return; }
+  hint.textContent = prev.status === "in" ? "Already in yard — check it out first" : "";
+});
+
+form.addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const trailer = $("f-trailer").value.trim().toUpperCase(), customer = $("f-customer").value.trim(), loadType = $("f-type").value;
+  const counted = COUNT_TYPES.includes(loadType);
+  const tires = counted ? parseW($("f-tires").value) : null;
+  const inWeight = counted || $("inWeightField").hidden ? null : parseW($("f-inweight").value);
+  if (Number.isNaN(inWeight) || (inWeight != null && inWeight <= 0)) return setMsg("Loaded weight must be a number in lbs, for example 52,000.", "err");
+  if (!trailer) return setMsg("Enter a trailer number.", "err");
+  if (Number.isNaN(tires) || (tires != null && (tires < 0 || !Number.isInteger(tires)))) return setMsg("Tire count must be a whole number, for example 450.", "err");
+  if (!customer) return setMsg("Enter the customer.", "err");
+  if (!loadType) return setMsg("Choose a load type.", "err");
+  if (!$("f-status").value) { $("f-status").focus(); return setMsg("Choose the trailer's status before saving.", "err"); }
+  if (!S.db) return setMsg("The yard sheet isn't connected, so this entry can't be saved. Reload the page and try again.", "err");
+  if (inYard(trailer)) return setMsg(`Trailer ${trailer} is already in the yard. Edit that row or check it out first.`, "err");
+  const yardStatus = $("f-status").value;
+  const hauler = HAULER_TYPES.includes(loadType) ? $("f-hauler").value : "";
+  const oosReason = yardStatus === "oos" ? $("f-reason").value.trim() : "";
+  $("submitBtn").disabled = true;
+  try {
+    const newRef = await S.db.collection("trailers").add({ trailer, customer, loadType, direction:directionOf({ loadType }), phase: directionOf({ loadType }) === "inbound" ? "open" : "", yardStatus, hauler, oosReason, tires, status:"in", arrivedAt:Date.now(), departedAt:null, by:S.me, role:"manager", empId:"", empName:"" });
+    setMsg(`Trailer ${trailer} checked in.`, "ok"); scheduleAutoSync();
+    if (inWeight != null) { try { await saveWeights(newRef.id, trailer, inWeight, null); } catch (e2) { toast("Trailer saved, but the loaded weight didn't save. Add it with Edit."); } }
+    form.reset(); $("f-type").innerHTML = typeOptions(""); $("f-status").innerHTML = statusOptions(""); syncFormFields();
+    $("trailerHint").textContent = ""; $("f-trailer").focus();
+  } catch (e) { writeError(e); }
+  finally { $("submitBtn").disabled = false; }
+});
+
+function writeError(e){
+  if (e && /^(invalid_argument|permission-denied)$/.test(e.code)) { S.canWrite = false; showBanner("Not saved: the database refused the change. Check the Firestore rules in the Firebase console (see README)."); route(); toast("Not saved: view-only access."); }
+  else if (e && /^(quota_exceeded|resource-exhausted)$/.test(e.code)) toast("The yard sheet is full. Delete old departed trailers to make room.");
+  else toast("Couldn't save just now. Try again in a moment.");
+}
+// Keep the pinned bottom scrollbar the same width as the yard table and scrolling with it.
+(function(){
+  const wrap = document.querySelector(".tbl-wrap"), bar = $("hbar"), inner = bar.firstElementChild;
+  const fit = () => { const over = wrap.scrollWidth > wrap.clientWidth + 1; bar.hidden = !over; if (over) { inner.style.width = wrap.scrollWidth + "px"; bar.scrollLeft = wrap.scrollLeft; } };
+  wrap.addEventListener("scroll", () => { if (bar.scrollLeft !== wrap.scrollLeft) bar.scrollLeft = wrap.scrollLeft; });
+  bar.addEventListener("scroll", () => { if (wrap.scrollLeft !== bar.scrollLeft) wrap.scrollLeft = bar.scrollLeft; });
+  new ResizeObserver(fit).observe(wrap); new ResizeObserver(fit).observe(wrap.querySelector("table"));
+  window.addEventListener("resize", fit);
+})();
+function showBanner(t){ const b = $("banner"); b.hidden = !t; b.textContent = t || ""; }
+
+$("statusSeg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  S.statusFilter = b.dataset.status;
+  document.querySelectorAll("#statusSeg button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  renderSheet();
+});
+$("search").addEventListener("input", e => { S.query = e.target.value.trim().toLowerCase(); renderSheet(); });
+document.querySelectorAll("th[data-k]").forEach(th => th.addEventListener("click", () => {
+  const k = th.dataset.k;
+  if (S.sortKey === k) S.sortDir *= -1; else { S.sortKey = k; S.sortDir = ["trailer","customer","loadType","status","who","ys"].includes(k) ? 1 : -1; }
+  document.querySelectorAll("th[data-k]").forEach(x => x.removeAttribute("aria-sort"));
+  th.setAttribute("aria-sort", S.sortDir === 1 ? "ascending" : "descending");
+  renderSheet();
+}));
+
+function visibleRows(){
+  const q = S.query;
+  return S.records
+    .filter(r => S.statusFilter === "all" || (S.statusFilter === "done" ? r.status === "in" && phaseOf(r) === "completed" : r.status === S.statusFilter))
+    .map(r => ({ ...r, ...wOf(r), who: whoName(r), ys: statusLabel(yardStatusOf(r)) }))
+    .filter(r => !q || [r.trailer, r.customer, r.loadType, r.who, r.ys, r.oosReason].some(v => String(v||"").toLowerCase().includes(q)))
+    .sort((a, b) => {
+      const x = a[S.sortKey], y = b[S.sortKey];
+      if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+      return (typeof x === "number" ? x - y : String(x).localeCompare(String(y), undefined, {numeric:true})) * S.sortDir;
+    });
+}
+
+function rowHtml(r){
+  const pill = yardPill(r);
+  let actions = "";
+  if (S.canWrite) {
+    if (S.confirmId === r.id) actions = `<span class="label" style="align-self:center">Delete?</span><button class="small danger" data-act="del-yes" data-id="${r.id}">Delete</button><button class="small" data-act="del-no">Keep</button>`;
+    else if (S.rowEditId === r.id) actions = `<button class="small" data-act="save-row" data-id="${r.id}">Save</button><button class="small" data-act="cancel-row">Cancel</button>`;
+    else if (S.departId === r.id) actions = `<button class="small primary" data-act="depart-yes" data-id="${r.id}" style="font-size:.85rem;padding:4px 10px">Depart</button><button class="small" data-act="depart-no">Cancel</button>`;
+    else actions = (r.status === "in" ? `<button class="small ${phaseOf(r) === "completed" ? "primary" : ""}" data-act="out" data-id="${r.id}" style="${phaseOf(r) === "completed" ? "font-size:.85rem;padding:4px 10px" : ""}">Depart</button>` : `<button class="small" data-act="in" data-id="${r.id}">Return to yard</button>`)
+      + `<button class="small" data-act="edit" data-id="${r.id}">Edit</button><button class="small" data-act="del" data-id="${r.id}">Delete</button>`;
+  }
+  if (S.rowEditId === r.id) return `<tr>
+    <td><input class="edit-input num" id="re-trailer" value="${esc(r.trailer)}" placeholder="Trailer #" style="width:96px;text-transform:uppercase"></td>
+    <td><input class="edit-input" id="re-customer" value="${esc(r.customer)}" list="customerList"></td>
+    <td><select class="edit-input" id="re-type" style="width:auto">${typeOptions(r.loadType)}</select></td>
+    <td><div style="display:grid;gap:4px"><select class="edit-input" id="re-status" style="width:auto">${statusOptions(yardStatusOf(r))}</select>
+      <select class="edit-input" id="re-hauler" style="width:auto"><option value="">No hauler</option>${Object.entries(HAULERS).map(([v,l]) => `<option value="${v}" ${r.hauler === v ? "selected" : ""}>${l}</option>`).join("")}</select>
+      <input class="edit-input" id="re-reason" placeholder="OOS reason" value="${esc(r.oosReason || "")}">
+      <input class="edit-input" id="re-note" placeholder="Note" value="${esc(r.note || "")}"></div></td>
+    <td class="r"><input class="edit-input num" id="re-tires" value="${r.tires ?? ""}" inputmode="numeric" placeholder="Grade/Route" style="width:90px"></td>
+    <td class="r"><input class="edit-input num" id="re-gross" value="${r.gross ?? ""}" inputmode="numeric" placeholder="gross"></td>
+    <td class="r"><input class="edit-input num" id="re-tare" value="${r.tare ?? ""}" inputmode="numeric" placeholder="tare"></td>
+    <td class="r num">—</td><td>${when(r.arrivedAt)}</td><td>${esc(r.who)}</td><td>${pill}</td>
+    <td><div class="row-actions">${actions}</div></td></tr>`;
+  return `<tr>
+    <td><span class="tnum">${esc(r.trailer)}</span></td><td>${esc(r.customer)}</td><td>${esc(r.loadType)}<div class="sub">${directionOf(r) === "inbound" ? "Inbound" : "Outbound"}${r.inbound ? ` · came in as ${esc(r.inbound.loadType)}` : ""}</div>${r.unloadedAt ? `<div class="sub">Unloaded ${when(r.unloadedAt)}${r.unloadedBy ? " by " + esc(r.unloadedBy) : ""}</div>` : ""}${r.completedAt ? `<div class="sub">Completed ${when(r.completedAt)}${r.completedBy ? " by " + esc(r.completedBy) : ""}</div>` : ""}</td>
+    <td>${esc(r.ys)}${r.hauler && HAULER_TYPES.includes(r.loadType) ? `<div class="sub">${esc(HAULERS[r.hauler] || r.hauler)}</div>` : ""}${yardStatusOf(r) === "oos" && r.oosReason ? `<div class="sub">${esc(r.oosReason)}</div>` : ""}${r.note ? `<div class="sub" style="white-space:normal;max-width:220px">Note: ${esc(r.note)}</div>` : ""}</td>
+    <td class="r num">${r.tires != null ? fmt(r.tires) : "—"}</td>
+    ${S.departId === r.id
+      ? `<td class="r"><input class="edit-input num" id="dp-gross" value="${r.gross ?? ""}" inputmode="numeric" placeholder="Gross lbs"></td>
+    <td class="r"><input class="edit-input num" id="dp-tare" value="${r.tare ?? lastTare(r) ?? ""}" inputmode="numeric" placeholder="Tare lbs"></td>
+    <td class="r num" id="dp-net">${fmtT(r.gross != null && (r.tare ?? lastTare(r)) != null ? r.gross - (r.tare ?? lastTare(r)) : null)}</td>`
+      : `<td class="r num">${fmt(r.gross)}</td><td class="r num">${fmt(r.tare)}</td>
+    <td class="r num ${r.net != null && r.net < 0 ? "flag" : ""}">${fmtT(r.net)}</td>`}
+    <td>${when(r.arrivedAt)}${r.status === "out" && r.departedAt ? `<div class="sub">Out ${when(r.departedAt)}</div>` : ""}</td>
+    <td>${esc(r.who)}</td><td>${pill}</td><td><div class="row-actions">${actions}</div></td></tr>`;
+}
+
+// Tare from this trailer's last weighed visit, so the manager usually only types the gross.
+function lastTare(r){
+  const prev = S.records.filter(x => x.trailer === r.trailer && x.id !== r.id).map(x => ({ x, w:wOf(x) }))
+    .filter(o => o.w.tare != null).sort((a, b) => (b.x.departedAt || b.x.arrivedAt || 0) - (a.x.departedAt || a.x.arrivedAt || 0))[0];
+  return prev ? prev.w.tare : null;
+}
+async function saveWeights(id, trailer, gross, tare){
+  const doc = { trailer: trailer || "", gross, tare, net: gross != null && tare != null ? gross - tare : null, at: Date.now(), by: S.me || null };
+  S.weights = { ...S.weights, [id]: doc };
+  await S.db.collection("weights").doc(id).set(doc);
+}
+$("rows").addEventListener("input", e => {
+  if (e.target.id !== "dp-gross" && e.target.id !== "dp-tare") return;
+  const g = parseW($("dp-gross").value), t = parseW($("dp-tare").value), el = $("dp-net");
+  if (el) { const n = g != null && t != null && !isNaN(g) && !isNaN(t) ? g - t : null; el.textContent = fmtT(n); el.classList.toggle("flag", n != null && n < 0); }
+});
+$("rows").addEventListener("keydown", e => {
+  if (e.key === "Enter" && (e.target.id === "dp-gross" || e.target.id === "dp-tare")) { e.preventDefault(); $("rows").querySelector('[data-act="depart-yes"]')?.click(); }
+});
+$("rows").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-act]"); if (!b || !S.db) return;
+  const id = b.dataset.id, act = b.dataset.act, ref = id ? S.db.collection("trailers").doc(id) : null;
+  try {
+    if (act === "out") { S.departId = id; S.rowEditId = null; S.confirmId = null; renderSheet(); $("dp-gross")?.focus(); }
+    else if (act === "depart-no") { S.departId = null; renderSheet(); }
+    else if (act === "depart-yes") {
+      const gross = parseW($("dp-gross").value), tare = parseW($("dp-tare").value);
+      if (Number.isNaN(gross) || Number.isNaN(tare)) return toast("Weights must be numbers in lbs, for example 42,500.");
+      if (gross != null && tare != null && gross < tare) return toast("Gross is less than tare. Check the scale ticket.");
+      const rec = S.records.find(x => x.id === id) || {};
+      if (gross != null || tare != null) await saveWeights(id, rec.trailer, gross, tare);
+      await ref.update({ status:"out", departedAt:Date.now() });
+      S.departId = null; toast(`#${rec.trailer || ""} departed${gross != null && tare != null ? " · net " + fmtT(gross - tare) + " tons" : ""}.`);
+      scheduleAutoSync();
+    }
+    else if (act === "in") { await ref.update({ status:"in", departedAt:null }); scheduleAutoSync(); }
+    else if (act === "edit") { S.rowEditId = id; S.confirmId = null; S.departId = null; renderSheet(); $("re-trailer")?.focus(); }
+    else if (act === "cancel-row") { S.rowEditId = null; renderSheet(); }
+    else if (act === "save-row") {
+      const customer = $("re-customer").value.trim(), loadType = $("re-type").value;
+      const counted = COUNT_TYPES.includes(loadType);
+      const gross = parseW($("re-gross").value), tare = parseW($("re-tare").value);
+      const tires = counted ? parseW($("re-tires").value) : null;
+      if (Number.isNaN(tires) || (tires != null && (tires < 0 || !Number.isInteger(tires)))) return toast("Tire count must be a whole number.");
+      if (Number.isNaN(gross) || Number.isNaN(tare)) return toast("Weights must be numbers in lbs.");
+      if (gross != null && tare != null && gross < tare) return toast("Gross is less than tare. Check the scale ticket.");
+      if (!customer || !loadType) return toast("Customer and load type can't be blank.");
+      const rec0 = S.records.find(x => x.id === id) || {};
+      const trailer = ($("re-trailer")?.value || "").trim().toUpperCase();
+      if (!trailer) return toast("Trailer # can't be blank.");
+      if (trailer !== rec0.trailer && rec0.status === "in") {
+        const dup = S.records.find(x => x.id !== id && x.status === "in" && x.trailer === trailer);
+        if (dup) return toast(`#${trailer} is already on the yard. Depart or delete that one first.`);
+      }
+      const yardStatus = $("re-status").value;
+      const hauler = HAULER_TYPES.includes(loadType) ? ($("re-hauler").value || "liberty") : "";
+      const oosReason = yardStatus === "oos" ? $("re-reason").value.trim() : "";
+      const note = ($("re-note")?.value || "").trim();
+      await ref.update({ trailer, customer, loadType, tires, yardStatus, hauler, oosReason, note, loaded:null, empty:null });
+      const was = wOf(rec0.id ? rec0 : { id });
+      if (gross !== was.gross || tare !== was.tare) await saveWeights(id, trailer, gross, tare);
+      else if (trailer !== rec0.trailer && S.weights && S.weights[id]) { try { await S.db.collection("weights").doc(id).update({ trailer }); S.weights[id] = { ...S.weights[id], trailer }; } catch {} }
+      S.rowEditId = null; toast(trailer !== rec0.trailer && rec0.trailer ? `Row updated · #${rec0.trailer} is now #${trailer}.` : "Row updated."); renderSheet();
+      scheduleAutoSync();
+    }
+    else if (act === "del") { S.confirmId = id; S.rowEditId = null; renderSheet(); }
+    else if (act === "del-no") { S.confirmId = null; renderSheet(); }
+    else if (act === "del-yes") { S.confirmId = null; await ref.delete(); try { await S.db.collection("weights").doc(id).delete(); } catch {} toast("Trailer removed from the sheet."); scheduleAutoSync(); }
+  } catch (err) { writeError(err); }
+});
+
+function bars(el, groups){
+  const entries = Object.entries(groups).sort((a,b) => b[1].count - a[1].count || b[1].net - a[1].net);
+  if (!entries.length) { el.innerHTML = `<p class="empty-note">Fills in as trailers are checked in.</p>`; return; }
+  const max = Math.max(1, ...entries.map(([,g]) => g.count));
+  el.innerHTML = entries.map(([name, g]) => `<div class="bar-row"><span class="name">${esc(name)}</span>
+    <span class="val num">${g.count} trl${g.net ? ` · ${fmtT(g.net)} tons` : ""}${g.tires ? ` · ${fmt(g.tires)} tires` : ""}</span><span class="bar"><i style="width:${Math.max(2, g.count / max * 100)}%"></i></span></div>`).join("");
+}
+
+function renderSheet(){
+  if ($("sheetView").hidden) return;
+  form.hidden = !S.canWrite;
+  renderGs();
+  const yard = S.records.filter(r => r.status === "in");
+  const loadedTrl = yard.filter(r => yardStatusOf(r) !== "empty");
+  [["GRADE","grade"],["ROUTE","route"]].forEach(([t, k]) => {
+    const list = yard.filter(r => r.loadType === t && r.tires != null);
+    $("s-tires-" + k).textContent = fmt(list.reduce((s, r) => s + r.tires, 0));
+    $("s-tires-" + k + "-note").textContent = `on ${list.length} ${t === "GRADE" ? "Grade" : "Route"} trailer${list.length === 1 ? "" : "s"}`;
+  });
+  const t0 = midnight();
+  const today = S.records.filter(r => (r.arrivedAt||0) >= t0);
+  $("s-count").textContent = yard.length;
+  const done = yard.filter(r => phaseOf(r) === "completed").length, open = yard.filter(r => phaseOf(r) === "open").length;
+  $("s-split").textContent = `${open} open inbound · ${done} completed, waiting to depart`;
+  const outToday = S.records.filter(r => r.status === "out" && (r.departedAt || 0) >= midnight());
+  const weighed = outToday.filter(r => wOf(r).net != null);
+  $("s-net").textContent = fmtT(weighed.reduce((s, r) => s + Math.max(0, wOf(r).net), 0));
+  $("s-net-note").textContent = `tons on ${weighed.length} of ${outToday.length} trailer${outToday.length === 1 ? "" : "s"} departed today`;
+  $("s-today").textContent = today.length;
+  const byEmp = {}; today.forEach(r => { const w = whoName(r); byEmp[w] = (byEmp[w]||0) + 1; });
+  const top = Object.entries(byEmp).sort((a,b) => b[1]-a[1]).slice(0,3).map(([n,c]) => `${n} ${c}`).join(" · ");
+  $("s-todaynote").textContent = top || "check-ins since midnight";
+  $("s-out").textContent = S.records.filter(r => r.status === "out" && (r.departedAt||0) >= t0).length;
+
+  const byC = {}, byT = {};
+  yard.forEach(r => {
+    const n = Math.max(0, wOf(r).net ?? 0), tc = r.tires ?? 0;
+    const c = r.customer || "—", t = r.loadType || "—";
+    (byC[c] ??= {count:0, net:0, tires:0}); byC[c].count++; byC[c].net += n; byC[c].tires += tc;
+    (byT[t] ??= {count:0, net:0, tires:0}); byT[t].count++; byT[t].net += n; byT[t].tires += tc;
+  });
+  bars($("byCustomer"), byC); bars($("byType"), byT);
+
+  const rows = visibleRows();
+  // Don't wipe a row someone is in the middle of editing when live updates arrive.
+  if ((S.rowEditId && $("re-customer") || S.departId && $("dp-gross")) && $("rows").contains(document.activeElement)) return;
+  $("rows").innerHTML = rows.map(rowHtml).join("");
+  $("sheetEmpty").hidden = rows.length > 0;
+  if (rows.length) {
+    const sum = k => rows.reduce((s, r) => s + (r[k] ?? 0), 0);
+    $("foot").innerHTML = `<tr><td colspan="4">${rows.length} trailer${rows.length === 1 ? "" : "s"}</td>
+      <td class="r num">${fmt(sum("tires"))}</td><td class="r num">${fmt(sum("gross"))}</td><td class="r num">${fmt(sum("tare"))}</td>
+      <td class="r num">${fmtT(rows.reduce((s,r) => s + Math.max(0, r.net ?? 0), 0))}</td><td colspan="4"></td></tr>`;
+  } else {
+    $("foot").innerHTML = "";
+    $("sheetEmpty").innerHTML = S.records.length
+      ? `<strong>No matching trailers</strong><span>Try another status filter or search.</span>`
+      : `<strong>No trailers on the sheet yet</strong><span>Entries from the Clicker and the form above show up here live.</span>`;
+  }
+  const uniq = k => [...new Set(S.records.map(r => r[k]).filter(Boolean))].sort();
+  $("customerList").innerHTML = `<option value="N/A"></option>`; // only N/A pops up, never earlier customer names
+  $("trailerList").innerHTML = uniq("trailer").map(v => `<option value="${esc(v)}"></option>`).join("");
+}
+
+function csv(){
+  const head = ["Trailer #","Customer","Load type","Direction","Status","Hauler","OOS reason","Tires","Gross (lbs)","Tare (lbs)","Net (tons)","Checked in","Logged by","Yard","Came in as","Completed","Checked out","Note"];
+  const q = v => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
+  const d = ms => ms ? new Date(ms).toLocaleString("en-US") : "";
+  return [head, ...visibleRows().map(r => [r.trailer, r.customer, r.loadType, directionOf(r) === "inbound" ? "Inbound" : "Outbound", r.ys, HAULER_TYPES.includes(r.loadType) ? (HAULERS[r.hauler] || "") : "", r.oosReason || "", r.tires ?? "", r.gross ?? "", r.tare ?? "", r.net != null ? (r.net / 2000).toFixed(2) : "", d(r.arrivedAt), r.who, yardLabel(r), r.inbound ? r.inbound.loadType : "", d(r.completedAt), d(r.departedAt), r.note || ""])]
+    .map(row => row.map(q).join(",")).join("\n");
+}
+$("copyBtn").addEventListener("click", () => {
+  navigator.clipboard.writeText(csv()).then(() => toast("Yard sheet copied as CSV. Paste it into Excel or Sheets."), () => toast("Your browser blocked copying. Use Download CSV instead."));
+});
+$("dlBtn").addEventListener("click", async () => {
+  if (!S.dl) return;
+  const d = new Date(), stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  try { await S.dl.save({ filename:`yard-report-${stamp}.csv`, data:csv() }); } catch { toast("Download was cancelled."); }
+});
+
+/* =====================================================================
+   GOOGLE SHEET (manager)
+   ===================================================================== */
+const sheetIdFromUrl = u => { const m = String(u || "").match(/\/spreadsheets\/d\/([A-Za-z0-9_-]{20,})/); return m ? m[1] : (/^[A-Za-z0-9_-]{30,}$/.test(String(u).trim()) ? String(u).trim() : ""); };
+const pad2 = n => String(n).padStart(2, "0");
+function setGsMsg(t, cls){ S.gsMsg = t || ""; S.gsMsgCls = cls || ""; renderGs(); }
+function renderGs(){
+  const el = $("gsCard"); if (!el || $("sheetView").hidden) return;
+  if (document.activeElement && document.activeElement.id === "gsUrl") return;
+  const gs = S.gs, can = S.canWrite && S.isManager;
+  if (!S.gsReady) { el.innerHTML = `<div class="gs-info"><b>Google Sheet</b><span class="sub">Loading…</span></div>`; return; }
+  const msg = S.gsMsg ? `<span class="msg ${S.gsMsgCls}">${esc(S.gsMsg)}</span>` : "";
+  if (!gs || !gs.id || S.gsEdit) {
+    el.innerHTML = `<div class="gs-info"><b>Google Sheet</b><span class="sub">Paste the link to the Google Sheet the yard report should go into.</span></div>
+      <input id="gsUrl" placeholder="https://docs.google.com/spreadsheets/d/…" value="${esc(S.gsDraft || (gs && gs.url) || "")}" ${can ? "" : "disabled"}>
+      <div class="row-btns"><button class="primary" data-gs="save" ${can ? "" : "disabled"}>Save link</button>${gs && gs.id ? `<button data-gs="cancel">Cancel</button>` : ""}</div>${msg}`;
+    return;
+  }
+  const ls = gs.lastSent;
+  el.innerHTML = `<div class="gs-info"><b>Google Sheet</b>
+      <span class="sub"><a href="${esc(gs.url)}" target="_blank" rel="noopener">Open the Yard Report sheet</a>${ls ? ` · updated ${when(ls.at)}, ${esc(ls.tab)} tab (${ls.count} trailer${ls.count === 1 ? "" : "s"})` : " · nothing sent yet"}</span>
+      <span class="sub">${!S.mcp ? "" : canAutoSync() ? "Updates by itself whenever the yard changes, while this page is open." : "Updates by itself from the owner's manager page. Use Send to Google Sheet to update it now."}</span></div>
+    <div class="row-btns"><button data-gs="edit" ${can ? "" : "disabled"}>Change link</button>
+      <button class="primary" data-gs="send" ${S.gsBusy || !S.mcp ? "disabled" : ""}>${S.gsBusy ? "Sending…" : "Send to Google Sheet"}</button></div>
+    ${msg || (!S.mcp && S.connected ? `<span class="msg">Google Sheet sending isn't set up yet: add your Apps Script link to config.js (see README).</span>` : "")}`;
+}
+$("gsCard").addEventListener("input", e => { if (e.target.id === "gsUrl") S.gsDraft = e.target.value; });
+$("gsCard").addEventListener("keydown", e => { if (e.target.id === "gsUrl" && e.key === "Enter") { e.preventDefault(); e.target.blur(); saveGsLink(); } });
+$("gsCard").addEventListener("click", e => {
+  const b = e.target.closest("button[data-gs]"); if (!b || b.disabled) return;
+  const a = b.dataset.gs;
+  if (a === "edit") { S.gsEdit = true; S.gsDraft = S.gs?.url || ""; S.gsMsg = ""; renderGs(); $("gsUrl")?.focus(); }
+  else if (a === "cancel") { S.gsEdit = false; S.gsMsg = ""; renderGs(); }
+  else if (a === "save") saveGsLink();
+  else if (a === "send") sendToSheet(false);
+});
+async function saveGsLink(){
+  const url = (S.gsDraft || "").trim(), id = sheetIdFromUrl(url);
+  if (!id) return setGsMsg("That doesn't look like a Google Sheets link. Copy it from the browser's address bar while the sheet is open.", "err");
+  try {
+    await S.db.doc("config/gsheet").set({ url, id, lastSent: S.gs && S.gs.id === id ? (S.gs.lastSent || null) : null });
+    S.gsEdit = false; S.gsDraft = ""; setGsMsg("Link saved. Tap Send to Google Sheet to fill today's tab.", "ok");
+  } catch (e) { setGsMsg(e && /^(invalid_argument|permission-denied)$/.test(e.code) ? "Only the manager can change the sheet link." : "Couldn't save the link. Try again.", "err"); }
+}
+function gsError(e){
+  const c = e && e.code, m = String(e && e.message || "");
+  if (c === "needs_reauth") return "The Google Sheet relay needs to be re-authorized. Open the Apps Script, run it once, approve access, then send again.";
+  if (c === "server_not_connected" || c === "selection_required") return "The Google Sheet relay isn't set up. Add its link to config.js, then send again.";
+  if (c === "not_in_manifest" || c === "consent_required") return "Google Sheets isn't allowed for this page yet. Allow it when asked (or from the page's permissions), then send again.";
+  if (c === "blocked_by_policy" || c === "approval_required") return "Your organization's settings block this Google Sheets action.";
+  if (c === "tool_error") {
+    if (/scope|permission|PERMISSION_DENIED|403/i.test(m)) return "Google Sheets doesn't have permission to edit this spreadsheet. Make sure the Apps Script was deployed from the Google account that owns (or can edit) this spreadsheet.";
+    if (/not found|404|NOT_FOUND/i.test(m)) return "Couldn't find that spreadsheet. Check the link with Change link.";
+    return "Google Sheets reported a problem: " + m.slice(0, 200);
+  }
+  if (c === "server_unavailable" || c === "upstream_error" || c === "rate_limited") return "Google Sheets didn't respond. Check the sheet, then send again.";
+  if (c === "not_granted" || c === "capability_disabled" || c === "capability_removed") return "This page can't reach the Google Sheet relay. Check the link in config.js.";
+  return "Couldn't send to Google Sheets: " + (m || c || "unknown error");
+}
+function sheetsFromPayload(p){
+  if (typeof p === "string") { try { p = JSON.parse(p); } catch { return []; } }
+  if (!p || typeof p !== "object") return [];
+  return p.sheets || (p.spreadsheet && p.spreadsheet.sheets) || [];
+}
+// After the manager deletes, checks out, edits or adds a trailer on this page, refresh today's tab.
+let autoT = null, sendAgain = false;
+const LEASE_ID = "p" + Math.random().toString(36).slice(2, 10);
+const canAutoSync = () => !!(S.isOwner || S.gsAvailable);
+function scheduleAutoSync(delay){
+  if (S.outdated) return;
+  if (!S.mcp || !S.gs || !S.gs.id || !managerUI() || !canAutoSync()) return;
+  clearTimeout(autoT);
+  autoT = setTimeout(() => sendToSheet(true), delay || 1500);
+}
+// Fully automatic: whenever the yard changes (an employee's clicker entry included) or the date rolls over,
+// any open manager page rebuilds today's tab. A fingerprint of what was last sent, kept with the sheet link,
+// stops repeat sends when several manager pages are open or the page is reloaded.
+const todayTab = () => { const d = new Date(); return `${pad2(d.getMonth()+1)}-${pad2(d.getDate())}-${d.getFullYear()}`; };
+function yardSig(recs, tab){
+  const s = "v6|" + tab + "|" + recs.filter(r => r.status === "in")
+    .map(r => [r.id, r.trailer, r.customer, r.loadType, yardStatusOf(r), r.hauler || "", r.oosReason || "", r.tires ?? ""].join("~"))
+    .sort().join("|") + "#" + JSON.stringify(unloadRows(recs))
+    + "#" + recs.map(r => r.id + ":" + (r.trailer || "")).sort().join(","); // a corrected trailer # (even on a departed trailer) resends
+  let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return h.toString(36) + "." + s.length;
+}
+// Rows for the "Unloaded Trailers" tab: every entry marked unloaded, newest first, with the
+// loaded weight from check-in and the unloaded weight from the unload (not later outbound weights).
+function unloadRows(recs){
+  return recs.filter(r => r.unloadedAt).sort((a, b) => b.unloadedAt - a.unloadedAt).map(r => {
+    const list = [...((S.empWeights && S.empWeights[r.id]) || [])];
+    if (S.weights && S.weights[r.id]) list.push(S.weights[r.id]);
+    list.sort((a, b) => (a.at || 0) - (b.at || 0));
+    const cut = r.completedAt || Infinity;
+    let gross = r.inbound ? (r.inbound.loaded ?? null) : (r.loaded ?? null), tare = r.inbound ? (r.inbound.empty ?? null) : (r.empty ?? null);
+    list.forEach(w => { if ((w.at || 0) > cut) return; if (w.gross != null) gross = w.gross; if (w.tare != null) tare = w.tare; });
+    return { at:r.unloadedAt, trailer:r.trailer, loadType:(r.inbound && r.inbound.loadType) || r.loadType, customer:r.customer || "",
+      gross, tare, tires: r.inbound ? (r.inbound.tires ?? null) : (r.tires ?? null), by:r.unloadedBy || "", status:yardLabel(r),
+      departedAt: r.status === "out" ? r.departedAt : null };
+  });
+}
+let queuedSig = "";
+function maybeAutoSync(){
+  if (S.outdated) return;
+  if (!S.recordsReady || !S.gsReady || !S.mcp || !S.gs || !S.gs.id || !managerUI() || !canAutoSync()) return;
+  if (S.gsFailedSig && S.gsFailedSig === yardSig(S.records, todayTab())) return; // don't hammer after an error; the next change retries
+  const sig = yardSig(S.records, todayTab());
+  if ((S.gs.lastSent && S.gs.lastSent.sig === sig) || sig === queuedSig) return;
+  queuedSig = sig;
+  scheduleAutoSync(2500 + Math.floor(Math.random() * 1500));
+}
+setInterval(maybeAutoSync, 5 * 60 * 1000); // catches the new day's tab after midnight
+async function sendToSheet(auto){
+  if (S.outdated) return;
+  if (!S.mcp || !S.gs || !S.gs.id) return;
+  if (S.gsBusy) { sendAgain = true; return; }
+  const d = new Date(), tab = `${pad2(d.getMonth()+1)}-${pad2(d.getDate())}-${d.getFullYear()}`, dateLabel = tab.replace(/-/g, "/");
+  // Only one open manager page writes the sheet at a time (a short lease); the others wait and try again.
+  try {
+    const lease = await S.db.doc("config/sendlock").acquire({ holder: LEASE_ID, ttlMs: 20000 });
+    if (!lease.acquired) {
+      // another manager page is writing; afterwards, only send if the sheet still doesn't match the yard
+      setTimeout(() => { if (auto) { queuedSig = ""; maybeAutoSync(); } else sendToSheet(false); }, 6000 + Math.floor(Math.random() * 4000));
+      return;
+    }
+  } catch {}
+  S.gsBusy = true; S.gsMsg = ""; renderGs();
+  try {
+    const meta = await S.mcp.callTool(GS_SERVER, "get_spreadsheet", { spreadsheetId:S.gs.id, fields:["sheets.properties"] }, { cache:false });
+    const tabs = sheetsFromPayload(meta.payload).map(s => s.properties || {});
+    const old = tabs.find(t => t.title === tab);
+    // Read the yard fresh from the store so a just-deleted or just-checked-out trailer is never sent.
+    let recs = S.records;
+    try { const snap = await S.db.collection("trailers").get(); recs = snap.docs.filter(d => d.exists).map(d => ({ id:d.id, ...d.data() })); } catch {}
+    const g = yardReportGrid(recs, dateLabel);
+    const newId = 100000 + Math.floor(Math.random() * 2000000000);
+    // Leftover temp tabs from a send that overlapped another manager page's send get cleared first.
+    // Leftover tabs from overlapping sends: our temp "… new" tabs, and the "…_conflict123" copies Google makes
+    // when two manager pages add the same tab at once.
+    const strays = tabs.filter(t => t.title && (t.title.startsWith(tab + " new") || /^Unloaded( Trailers| \d\d-\d\d-\d{4}) new/.test(t.title)
+      || /^(Unloaded )?\d\d-\d\d-\d{4}.*_conflict\d+$/.test(t.title)));
+    const reqs = strays.map(t => ({ deleteSheet:{ sheetId:t.sheetId } }));
+    reqs.push({ addSheet:{ properties:{ sheetId:newId, title: old ? tab + " new " + newId : tab, index:0, gridProperties:{ rowCount:g.end + 2, columnCount:6 } } } });
+    if (old) reqs.push({ deleteSheet:{ sheetId:old.sheetId } }, { updateSheetProperties:{ properties:{ sheetId:newId, title:tab }, fields:"title" } });
+    reqs.push(...yardReportRequests(g, newId));
+    // Unloaded trailers, one tab per day ("Unloaded MM-DD-YYYY", 12:00 AM to 11:59 PM by unload time).
+    // Today's tab is always rebuilt; an earlier day's tab only when its rows changed (weights added later,
+    // a trailer departed), looking back two weeks.
+    const dayOf = ms => { const x = new Date(ms); return `${pad2(x.getMonth()+1)}-${pad2(x.getDate())}-${x.getFullYear()}`; };
+    const byDay = { [tab]: [] };
+    unloadRows(recs).forEach(r => { const k = dayOf(r.at); (byDay[k] = byDay[k] || []).push(r); });
+    const sentSigs = (S.gs && S.gs.unloadSigs) || {}, newSigs = {}, twoWeeks = Date.now() - 14 * 864e5;
+    const updLabel = "Updated " + new Date().toLocaleString("en-US", { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" });
+    let n = 1;
+    Object.keys(byDay).forEach(day => {
+      const [mm, dd, yy] = day.split("-").map(Number), dayStart = new Date(yy, mm - 1, dd).getTime();
+      if (day !== tab && dayStart < twoWeeks) return;
+      const title = unloadTabFor(day), oldU = tabs.find(t => t.title === title);
+      const daySig = yardSig([], day) + "." + JSON.stringify(byDay[day]).length + "." + byDay[day].map(r => [r.trailer, r.gross, r.tare, r.status, r.tires].join("~")).join("|");
+      newSigs[day] = daySig;
+      if (day !== tab && oldU && sentSigs[day] === daySig) return;
+      const sid = newId + n++;
+      const ul = unloadReportRequests(byDay[day], sid, updLabel, day.replace(/-/g, "/"));
+      reqs.push({ addSheet:{ properties:{ sheetId:sid, title: oldU ? title + " new " + sid : title, index: day === tab ? 1 : (oldU ? oldU.index : undefined), gridProperties:{ rowCount:ul.rowCount, columnCount:11 } } } });
+      if (oldU) reqs.push({ deleteSheet:{ sheetId:oldU.sheetId } }, { updateSheetProperties:{ properties:{ sheetId:sid, title }, fields:"title" } });
+      reqs.push(...ul.req);
+    });
+    const oldLog = tabs.find(t => t.title === UNLOAD_TAB);
+    if (oldLog) reqs.push({ deleteSheet:{ sheetId:oldLog.sheetId } });
+    // Earlier days' yard tabs keep the yard as it stood that day (departed trailers stay as history),
+    // but a trailer that was deleted on the site comes off every day's tab. Each day's yard is saved
+    // as a snapshot; if a trailer in an earlier snapshot no longer exists at all, that day's tab is rebuilt without it.
+    const liveIds = new Set(recs.map(r => r.id)), liveById = Object.fromEntries(recs.map(r => [r.id, r]));
+    const snapUpdates = [];
+    try {
+      const snaps = await S.db.collection("snaps").get();
+      snaps.docs.forEach(d => {
+        const day = d.id, data = d.data() || {};
+        if (day === tab || !Array.isArray(data.recs)) return;
+        // a trailer # corrected on the site is corrected on that day's tab too
+        const keep = data.recs.filter(r => liveIds.has(r.id)).map(r => { const l = liveById[r.id]; return l && l.trailer && l.trailer !== r.trailer ? { ...r, trailer:l.trailer } : r; });
+        if (keep.length === data.recs.length && keep.every((r, i) => r === data.recs[i])) return;
+        const oldT = tabs.find(t => t.title === day);
+        snapUpdates.push({ day, keep });
+        if (!oldT) return;
+        const sid = newId + n++, gd = yardReportGrid(keep, day.replace(/-/g, "/"));
+        reqs.push({ addSheet:{ properties:{ sheetId:sid, title: day + " new " + sid, index: oldT.index, gridProperties:{ rowCount:gd.end + 2, columnCount:6 } } } },
+          { deleteSheet:{ sheetId:oldT.sheetId } }, { updateSheetProperties:{ properties:{ sheetId:sid, title:day }, fields:"title" } },
+          ...yardReportRequests(gd, sid));
+      });
+    } catch {}
+    await S.mcp.callTool(GS_SERVER, "update_spreadsheet", { spreadsheetId:S.gs.id, requests:reqs }, { cache:false });
+    const count = recs.filter(r => r.status === "in").length;
+    // save today's yard as a snapshot (manager-only), and trim earlier snapshots of deleted trailers
+    const slim = r => ({ id:r.id, trailer:r.trailer || "", customer:r.customer || "", loadType:r.loadType || "", yardStatus:yardStatusOf(r),
+      hauler:r.hauler || "", oosReason:r.oosReason || "", tires:r.tires ?? null, status:"in", arrivedAt:r.arrivedAt || 0,
+      unloadedAt:r.unloadedAt || null, inbound: r.inbound ? { loadType:r.inbound.loadType || "" } : null });
+    try { await S.db.doc("snaps/" + tab).set({ at:Date.now(), recs: recs.filter(r => r.status === "in").map(slim) }); } catch {}
+    for (const u of snapUpdates) { try { await S.db.doc("snaps/" + u.day).set({ at:Date.now(), recs:u.keep }); } catch {} }
+    const sig = yardSig(recs, tab);
+    S.gsFailedSig = "";
+    try { await S.db.doc("config/gsheet").update({ lastSent:{ at:Date.now(), tab, count, sig }, unloadSigs:{ ...newSigs }, minVersion: Math.max(PAGE_VERSION, (S.gs && S.gs.minVersion) || 0) }); } catch {}
+    setGsMsg(auto
+      ? `Google Sheet updated: the ${tab} tab now shows ${count} trailer${count === 1 ? "" : "s"}.`
+      : `Sent ${count} trailer${count === 1 ? "" : "s"} to the ${tab} tab${old ? " (replaced the earlier send)" : ""}.`, "ok");
+  } catch (e) {
+    setGsMsg((auto ? "The Google Sheet didn't update. " : "") + gsError(e), "err"); sendAgain = false;
+    if (auto && S.recordsReady) S.gsFailedSig = yardSig(S.records, todayTab());
+    queuedSig = "";
+  }
+  finally {
+    S.gsBusy = false; renderGs();
+    if (sendAgain) { sendAgain = false; sendToSheet(true); }
+  }
+}
+
+/* =====================================================================
+   EMPLOYEES (manager)
+   ===================================================================== */
+const empLink = id => PAGE_URL + "#" + id;
+const slug = n => n.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,20) || "emp";
+async function saveEmployees(list, okMsg){
+  const before = S.employees; S.employees = list; renderEmployees();
+  try { await S.db.doc("config/employees").set({ list }); if (okMsg) toast(okMsg); }
+  catch (e) { S.employees = before; renderEmployees(); toast(e && /^(invalid_argument|permission-denied)$/.test(e.code) ? "Only the manager can change the employee list." : "Couldn't save the employee list. Try again."); }
+}
+// Managers: the owner, plus people the owner marks here. People appear once they've opened the page.
+function managersCard(){
+  const ids = [...new Set([...(S.people || []).map(p => p.id), ...(S.managerIds || [])])].filter(id => id !== S.me);
+  if (S.user && ids.length) S.user.profiles(ids).then(ps => {
+    const changed = ids.some(id => ((ps[id] || {}).name || "") !== ((S.profiles[id] || {}).name || ""));
+    S.profiles = { ...S.profiles, ...ps }; if (changed) renderEmployees();
+  }).catch(() => {});
+  const pById = Object.fromEntries((S.people || []).map(p => [p.id, p]));
+  const nameOf = id => ((S.profiles[id] || {}).name) || (pById[id] && pById[id].picked ? pById[id].picked + " (picked on Clicker)" : "Someone");
+  const rows = ids.sort((a, b) => (S.managerIds.includes(b) - S.managerIds.includes(a)) || ((pById[b] || {}).at || 0) - ((pById[a] || {}).at || 0)).map(id => {
+    const isMgr = S.managerIds.includes(id), seen = pById[id] ? "Last opened " + when(pById[id].at) : "Hasn't opened the page yet";
+    return `<div class="emp"><div><div class="nm" data-name="${esc(id)}"></div><div class="sub">${isMgr ? "<b>Manager</b> · " : ""}${seen}</div></div>
+      <div class="row-btns">${S.isOwner ? `<button class="small ${isMgr ? "danger" : ""}" data-act="${isMgr ? "mgr-off" : "mgr-on"}" data-id="${esc(id)}">${isMgr ? "Remove manager" : "Make manager"}</button>` : ""}</div></div>`;
+  }).join("");
+  setTimeout(() => document.querySelectorAll("#empView [data-name]").forEach(el => { el.textContent = nameOf(el.dataset.name); }));
+  return `<div class="card">
+      <h2>Managers</h2>
+      <p class="empty-note">Anyone who picks <b>Manager</b> on the Who's logging screen gets this manager page. People you mark here skip that screen and always get it. You (the owner) are always a manager.</p>
+      ${rows || `<p class="empty-note">No one else has opened the page yet. People show up here after they open it once.</p>`}
+    </div>`;
+}
+async function setManagers(ids, msg){
+  try { await S.db.doc("config/managers").set({ ids }); toast(msg); }
+  catch (e) { toast(e && /^(invalid_argument|permission-denied)$/.test(e.code) ? "Only the owner can change managers." : "Couldn't save. Try again."); }
+}
+function renderEmployees(){
+  const el = $("empView"); if (el.hidden) return;
+  if (document.activeElement && document.activeElement.id === "empName") return;
+  const t0 = midnight(), counts = {};
+  S.records.forEach(r => { if (r.empId && (r.arrivedAt||0) >= t0) counts[r.empId] = (counts[r.empId]||0) + 1; });
+  const list = activeEmps();
+  el.innerHTML = `
+    <div class="card">
+      <h2>Add an employee</h2>
+      <div class="addrow"><input id="empName" placeholder="Employee name" value="${esc(S.empDraft)}" maxlength="40"><button class="primary" data-act="emp-add">Add</button></div>
+      <p class="empty-note">Each employee gets a personal link that opens only the Clicker, and their name is stamped on every trailer they log.</p>
+    </div>
+    <div class="card">
+      <h2>Employee links</h2>
+      ${list.length ? list.map(x => `<div class="emp">
+        <div><div class="nm">${esc(x.name)}</div><div class="sub">${counts[x.id] || 0} logged today</div></div>
+        <div class="row-btns">${S.confirmEmp === x.id
+          ? `<button class="small danger" data-act="emp-rm-yes" data-id="${x.id}">Remove</button><button class="small" data-act="emp-rm-no">Keep</button>`
+          : `<button class="small" data-act="emp-rm" data-id="${x.id}">Remove</button>`}</div>
+        <div class="linkrow"><input id="lk-${x.id}" readonly value="${esc(empLink(x.id))}" aria-label="${esc(x.name)}'s link"><button class="small" data-act="emp-copy" data-id="${x.id}">Copy link</button></div>
+      </div>`).join("") : `<p class="empty-note">No employees yet. Add a name above to make their link.</p>`}
+    </div>
+    ${managersCard()}
+    <div class="card">
+      <h2>Getting an employee started</h2>
+      <ol class="steps">
+        <li>Anyone with an employee link gets only the Clicker. Only you (the owner), the people you mark as managers below, and anyone who picks <b>Manager</b> on the Who's logging screen get the yard sheet.</li>
+        <li>Copy an employee's link above and text it to them.</li>
+        <li>They open it on a phone or tablet and tap through: load type, trailer #, status, then a tire count (Grade and Route) or loaded and unloaded weights (everything else), Save. Only managers can see the weights after they're saved.</li>
+        <li>Their entries land on the Yard sheet right away with their name on them. Removing an employee turns their link off.</li>
+      </ol>
+    </div>`;
+}
+$("empView").addEventListener("input", e => { if (e.target.id === "empName") S.empDraft = e.target.value; });
+$("empView").addEventListener("keydown", e => { if (e.target.id === "empName" && e.key === "Enter") { e.preventDefault(); addEmp(); } });
+function addEmp(){
+  const name = (S.empDraft || "").replace(/\s+/g," ").trim();
+  if (!name) return toast("Enter the employee's name.");
+  if (activeEmps().some(x => x.name.toLowerCase() === name.toLowerCase())) return toast(`${name} is already on the list.`);
+  S.empDraft = ""; document.activeElement?.blur();
+  saveEmployees([...S.employees, { id:"e-" + slug(name) + "-" + rid(), name, active:true, createdAt:Date.now() }], `${name} added. Copy their link below.`);
+}
+$("empView").addEventListener("click", e => {
+  const b = e.target.closest("button[data-act]"); if (!b) return;
+  const id = b.dataset.id;
+  if (b.dataset.act === "emp-add") addEmp();
+  else if (b.dataset.act === "emp-copy") {
+    const inp = $("lk-" + id);
+    navigator.clipboard.writeText(empLink(id)).then(() => toast(`Copied ${empById(id)?.name || "the"}'s link.`), () => { inp.focus(); inp.select(); toast("Link selected. Copy it from the box."); });
+  }
+  else if (b.dataset.act === "mgr-on") setManagers([...new Set([...(S.managerIds || []), id])], "Marked as manager. They get the manager page next time they open it.");
+  else if (b.dataset.act === "mgr-off") setManagers((S.managerIds || []).filter(x => x !== id), "No longer a manager.");
+  else if (b.dataset.act === "emp-rm") { S.confirmEmp = id; renderEmployees(); }
+  else if (b.dataset.act === "emp-rm-no") { S.confirmEmp = null; renderEmployees(); }
+  else if (b.dataset.act === "emp-rm-yes") { S.confirmEmp = null; saveEmployees(S.employees.map(x => x.id === id ? { ...x, active:false } : x), "Removed. Their link no longer works."); }
+});
+
+/* =====================================================================
+   CLICKER
+   ===================================================================== */
+// Steps that apply to this entry: hauler only for Chips/Shred/Whole tire, reason only when out of service,
+// and no loaded weight for an empty trailer.
+function activeSteps(){
+  const e = S.e;
+  if (e.direction === "unloaded") {
+    // Route trailers are counted in tires, so unloading one doesn't ask for an unloaded weight.
+    const cur = e.trailer ? inYard(e.trailer) : null, isRoute = cur && ((cur.inbound && cur.inbound.loadType) || cur.loadType) === "ROUTE";
+    return STEPS.filter(([s]) => s === "type" || s === "trailer" || (s === "empty" && !isRoute) || s === "review");
+  }
+  // Outbound is one "Empty trailer" button: what it's for, trailer #, hauler (Chips/Shred/Whole tire), unloaded weight, note.
+  // Outbound "Loaded trailer": trailer # first (its type fills in if it's already on the yard), then what it's
+  // loaded with if unknown, hauler, tire count (Grade) or loaded weight (everything else), note.
+  if (e.loadFlow) {
+    const label = Object.fromEntries(STEPS), ids = ["type","trailer","use"];
+    if (HAULER_TYPES.includes(e.loadType)) ids.push("hauler");
+    if (e.yardStatus === "loaded") ids.push(COUNT_TYPES.includes(e.loadType) ? "tires" : "loaded"); // Loading: no count or weight yet
+    ids.push("note", "review");
+    return ids.map(id => [id, label[id]]);
+  }
+  if (e.emptyFlow) return STEPS.filter(([s]) => ["type","use","trailer","empty","note","review"].includes(s) || (s === "hauler" && HAULER_TYPES.includes(e.loadType)));
+  return STEPS.filter(([s]) =>
+    s === "use" || s === "note" ? false
+    : s === "hauler" ? HAULER_TYPES.includes(e.loadType)
+    : s === "reason" ? e.yardStatus === "oos"
+    : s === "tires" ? COUNT_TYPES.includes(e.loadType) && e.yardStatus !== "empty"
+    : s === "loaded" ? !COUNT_TYPES.includes(e.loadType) && e.yardStatus !== "empty"
+    : s === "empty" ? !COUNT_TYPES.includes(e.loadType) && (e.direction || directionOf({ loadType:e.loadType })) !== "inbound" // inbound: weighed empty when it's unloaded
+    : true);
+}
+const stepIdx = s => activeSteps().findIndex(x => x[0] === s);
+function stepDone(s){
+  const e = S.e;
+  return s === "type" ? !!e.loadType || e.direction === "unloaded" || !!e.emptyFlow || !!e.loadFlow : s === "use" ? !!e.loadType : s === "note" ? "note" in e : s === "customer" ? !!e.customer : s === "trailer" ? !!e.trailer
+    : s === "status" ? !!e.yardStatus : s === "hauler" ? !!e.hauler : s === "reason" ? !!e.oosReason
+    : s === "tires" ? "tires" in e : s === "loaded" ? "loaded" in e : s === "empty" ? "empty" in e : false;
+}
+function crumbVal(s){
+  const e = S.e;
+  if (s === "type") return e.direction === "unloaded" ? "UNLOADED" : e.emptyFlow ? "EMPTY TRAILER" : e.loadFlow ? (e.yardStatus === "loading" ? "LOADING TRAILER" : "LOADED TRAILER") : (e.loadType || "");
+  if (s === "use") return e.loadType || "";
+  if (s === "note") return "note" in e ? (e.note ? (e.note.length > 18 ? e.note.slice(0, 18) + "…" : e.note) : "none") : ""; if (s === "customer") return e.customer; if (s === "trailer") return e.trailer ? "#" + e.trailer : "";
+  if (s === "status") return e.yardStatus ? statusLabel(e.yardStatus) : "";
+  if (s === "hauler") return e.hauler ? HAULERS[e.hauler] : "";
+  if (s === "reason") return e.oosReason || "";
+  if (s === "tires") return "tires" in e ? (e.tires == null ? "skipped" : fmt(e.tires)) : "";
+  if (s === "loaded") return "loaded" in e ? (e.loaded == null ? "skipped" : fmt(e.loaded)) : "";
+  if (s === "empty") return "empty" in e ? (e.empty == null ? "skipped" : fmt(e.empty)) : "";
+  return "";
+}
+function goStep(s){
+  S.step = s; S.kb = false; S.newCust = false;
+  const e = S.e;
+  if (s === "trailer") S.pad = e.trailer || "";
+  else if (s === "reason") S.pad = e.oosReason || "";
+  else if (s === "note") S.pad = e.note || "";
+  else if (s === "tires") S.pad = e.tires != null ? String(e.tires) : "";
+  else if (s === "loaded") S.pad = e.loaded != null ? String(e.loaded) : "";
+  else if (s === "empty") {
+    if ("empty" in e) S.pad = e.empty != null ? String(e.empty) : "";
+    else S.pad = "";
+  } else S.pad = "";
+  if (s === "review") S.checkoutDup = true;
+  renderClicker(); window.scrollTo(0,0);
+}
+function nextStep(){
+  const steps = activeSteps(), i = stepIdx(S.step);
+  // jump to the first step after this one that isn't finished yet, else review
+  const rest = steps.slice(i + 1);
+  const next = rest.find(([s]) => s === "review" || !stepDone(s)) || steps[steps.length - 1];
+  goStep(next[0]);
+}
+
+let wake = null;
+function keepAwake(){ if (wake || !navigator.wakeLock) return; navigator.wakeLock.request("screen").then(w => { wake = w; w.addEventListener("release", () => wake = null); }).catch(() => {}); }
+const buzz = () => { try { navigator.vibrate && navigator.vibrate(12); } catch {} };
+
+function customerTiles(){
+  const freq = {};
+  S.records.forEach(r => { if (r.customer) freq[r.customer] = (freq[r.customer]||0) + 1; });
+  return Object.entries(freq).sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0])).slice(0, 30).map(([c]) => c);
+}
+// Employees aren't asked for the customer. A trailer that has been here before keeps its last customer;
+// otherwise the manager fills it in on the yard sheet.
+const custFor = e => e.customer || (lastVisit(e.trailer) || {}).customer || "";
+// Open inbound trailers on the yard that haven't been unloaded yet (this type first).
+function waitingToUnload(type){
+  return S.records.filter(r => r.status === "in" && phaseOf(r) === "open" && !r.unloadedAt)
+    .sort((a, b) => (b.loadType === type) - (a.loadType === type) || (a.arrivedAt || 0) - (b.arrivedAt || 0))
+    .map(r => r.trailer).filter(Boolean).slice(0, 16);
+}
+// Outbound trailers on the yard that aren't loaded yet (empties set aside first).
+function waitingToLoad(mode){
+  const rank = r => mode === "loading" ? 0 : (yardStatusOf(r) === "loading" ? 0 : 1);
+  return S.records.filter(r => r.status === "in" && directionOf(r) === "outbound" && yardStatusOf(r) !== "loaded" && (mode !== "loading" || yardStatusOf(r) === "empty"))
+    .sort((a, b) => rank(a) - rank(b) || (a.arrivedAt || 0) - (b.arrivedAt || 0))
+    .map(r => r.trailer).filter(Boolean).slice(0, 16);
+}
+// A loaded trailer that's already on the yard as an outbound empty keeps what it was set aside for (and its hauler).
+function prefillLoad(){
+  const e = S.e; if (!e.loadFlow || !e.trailer) return;
+  const c = inYard(e.trailer);
+  if (c && directionOf(c) === "outbound" && c.loadType && c.loadType !== "OUTBOUND" && c.loadType !== "EMPTY") { e.loadType = c.loadType; if (c.hauler) e.hauler = c.hauler; }
+}
+function trailerChips(){
+  const seen = new Set(), out = [];
+  [...S.records].sort((a,b) => (b.arrivedAt||0)-(a.arrivedAt||0)).forEach(r => {
+    if (r.trailer && !seen.has(r.trailer) && out.length < 12) { seen.add(r.trailer); out.push(r.trailer); }
+  });
+  return out;
+}
+
+function padHtml(kind){
+  const isW = kind !== "trailer", isT = kind === "tires";
+  const v = isW ? (S.pad ? fmt(Number(S.pad)) : "") : S.pad;
+  const display = (!isW && S.kb)
+    ? `<div class="display"><input id="kbInput" value="${esc(S.pad)}" maxlength="14" autocapitalize="characters" autocomplete="off" aria-label="Trailer number"></div>`
+    : `<div class="display"><span class="v ${v ? "" : "ph"}">${v ? esc(v) : (isW ? "0" : "—")}</span><small>${isT ? "tires" : isW ? "lbs" : ""}</small></div>`;
+  const extra = isT ? `<button data-act="key" data-k="00">00</button>` : isW ? `<button data-act="key" data-k="000">000</button>` : `<button data-act="key" data-k="-">–</button>`;
+  return `<div class="padwrap">${display}
+    <div class="keypad">${[7,8,9,4,5,6,1,2,3].map(n => `<button data-act="key" data-k="${n}">${n}</button>`).join("")}
+      ${extra}<button data-act="key" data-k="0">0</button><button data-act="key" data-k="bk" class="k-alt" aria-label="Backspace">⌫</button></div>
+    <div class="alt-row">
+      <button data-act="key" data-k="clr" class="k-alt">Clear</button>
+      ${isW ? `<button data-act="skip">${isT ? "No count" : "No weight"}</button>` : `<button data-act="kb">${S.kb ? "Number pad" : "Letters (ABC)"}</button>`}
+    </div>
+    <button class="primary next" data-act="pad-next">Next</button></div>`;
+}
+
+function lastHtml(){
+  const l = S.last; if (!l) return "";
+  const f = S.flash; S.flash = false;
+  return `<div class="last${f ? " fresh" : ""}"><span class="tick" aria-hidden="true">✓</span><span class="lw"><small>Saved ${clock(l.at)}</small>
+    <b>#${esc(l.trailer)} · ${esc(l.loadType)}</b><span>${esc([l.customer, l.tires != null ? fmt(l.tires) + " tires" : l.net != null ? "net " + fmtT(l.net) + " tons" : ""].filter(Boolean).join(" · "))}</span></span>
+    <button class="small" data-act="undo">Undo</button></div>`;
+}
+
+function renderClicker(){
+  const el = $("clkView"); if (el.hidden) return;
+  if (document.activeElement && ["kbInput","newCust","reasonInput","noteInput"].includes(document.activeElement.id)) return;
+  if (!S.connected) { el.innerHTML = `<div class="clk"><div class="center"><h2>Connecting…</h2><p class="empty-note">Loading the yard sheet.</p></div></div>`; return; }
+  if (!S.db) { el.innerHTML = `<div class="clk"><div class="center"><h2>Sign in to log trailers</h2><p class="empty-note">This site couldn't connect to the yard database. Check your signal and reload, or ask your manager.</p></div></div>`; return; }
+  if (linkDead()) { el.innerHTML = `<div class="clk"><div class="center"><h2>This link is turned off</h2><p class="empty-note">Ask your manager for a new link.</p></div></div>`; return; }
+  if (!S.canWrite) { el.innerHTML = `<div class="clk"><div class="center"><h2>View-only access</h2><p class="empty-note">This device can't save entries. Ask your manager.</p></div></div>`; return; }
+  if (needPicker()) {
+    el.innerHTML = `<div class="clk"><div class="qhead"><p class="q">Who's logging?</p></div>
+      <div class="tiles">${activeEmps().map(x => `<button class="tile" data-act="pick-emp" data-id="${x.id}"><b>${esc(x.name)}</b><span>Tap your name</span></button>`).join("")}
+        <button class="tile ob" data-act="pick-emp" data-id="manager"><b>Manager</b><span>Opens the manager page</span></button></div></div>`;
+    return;
+  }
+  const e = S.e, step = S.step;
+  const steps = activeSteps();
+  const crumbs = steps.map(([s, label], i) => {
+    const reachable = i <= stepIdx(step) || steps.slice(0, i).every(([p]) => stepDone(p));
+    const val = crumbVal(s);
+    return `<button data-act="crumb" data-s="${s}" class="${s === step ? "on" : ""} ${val ? "set" : ""}" ${reachable ? "" : "disabled"}><small>${label}</small>${val ? esc(val) : ""}</button>`;
+  }).join("");
+  let body = "";
+  const t0 = midnight();
+
+  if (step === "type") {
+    const today = {}; S.records.forEach(r => {
+      if ((r.arrivedAt||0) >= t0) { const k = r.loadType + "|" + directionOf(r); today[k] = (today[k]||0) + 1; }
+      if ((r.unloadedAt||0) >= t0) { const t = (r.inbound && r.inbound.loadType) || r.loadType, k = t + "|unloaded"; today[k] = (today[k]||0) + 1; }
+    });
+    const dirOfCls = dir => dir === "ib" ? "inbound" : dir === "ul" ? "unloaded" : "outbound";
+    const tile = (t, dir) => { const d = dirOfCls(dir);
+      return `<button class="tile ${dir} ${e.loadType === t && e.direction === d ? "pick" : ""}" data-act="type" data-v="${esc(t)}" data-dir="${d}"><b>${esc(t)}</b><span>${today[t + "|" + d] || 0} today</span></button>`; };
+    const group = (label, list, dir) => { const d = dirOfCls(dir);
+      return `<section class="dirgroup ${dir}"><h2 class="dirhead"><span class="dirtag">${label}</span><span class="label">${list.reduce((n, t) => n + (today[t + "|" + d] || 0), 0)} today</span></h2>
+      <div class="tiles">${list.map(t => tile(t, dir)).join("")}</div></section>`; };
+    const unloadedToday = S.records.filter(r => (r.unloadedAt || 0) >= t0).length, waiting = waitingToUnload("").length;
+    const unloadSection = `<section class="dirgroup ul"><h2 class="dirhead"><span class="dirtag">Unloaded</span><span class="label">${unloadedToday} today · ${waiting} waiting</span></h2>
+      <div class="tiles"><button class="tile ul" data-act="unload" style="grid-column:1/-1"><b>Enter trailer #</b><span>Marks an inbound trailer unloaded. Its load type fills in by itself.</span></button></div></section>`;
+    const outToday = S.records.filter(r => (r.arrivedAt||0) >= t0 && directionOf(r) === "outbound").length;
+    const emptySection = `<section class="dirgroup ob"><h2 class="dirhead"><span class="dirtag">Outbound</span><span class="label">${outToday} today</span></h2>
+      <div class="tiles"><button class="tile ob" data-act="empty-trailer" style="grid-column:1/-1"><b>Empty trailer</b><span>Then pick what it'll be used for</span></button>
+      <button class="tile ob" data-act="loading-trailer" style="grid-column:1/-1"><b>Loading trailer</b><span>Trailer #, then what it's being loaded with</span></button>
+      <button class="tile ob" data-act="loaded-trailer" style="grid-column:1/-1"><b>Loaded trailer</b><span>Trailer #, then tire count or loaded weight</span></button></div></section>`;
+    body = `<div class="qhead"><p class="q">Load type</p></div>
+      ${group("Inbound", INBOUND, "ib")}${unloadSection}${emptySection}`;
+  }
+  else if (step === "customer") {
+    const list = customerTiles();
+    body = `<div class="qhead"><p class="q">Customer</p></div>
+      ${S.newCust || !list.length ? `<div class="padwrap"><div class="display"><input id="newCust" value="${esc(S.pad)}" maxlength="50" placeholder="Customer name" autocomplete="off" aria-label="Customer name"></div>
+        <button class="primary next" data-act="cust-new-next">Next</button>${list.length ? `<button data-act="cust-list">Back to customer list</button>` : ""}</div>` : ""}
+      ${!S.newCust && list.length ? `<div class="tiles">${list.map(c => `<button class="tile ${e.customer === c ? "pick" : ""}" data-act="cust" data-v="${esc(c)}"><b>${esc(c)}</b></button>`).join("")}
+        <button class="tile new" data-act="cust-new"><b>+ New customer</b><span>Type the name</span></button></div>` : ""}`;
+  }
+  else if (step === "trailer") {
+    const ul = e.direction === "unloaded";
+    const chips = ul ? waitingToUnload("") : e.loadFlow ? waitingToLoad(e.yardStatus) : trailerChips();
+    body = `<div class="qhead"><p class="q">Trailer #</p>${ul ? `<span class="label">Which trailer got unloaded?</span>` : ""}</div>
+      ${ul && !chips.length ? `<div class="note">No inbound trailers are waiting to be unloaded.</div>` : ""}
+      ${chips.length ? `<div><div class="label" style="margin-bottom:6px">${ul ? "Waiting to be unloaded" : e.loadFlow ? "Waiting to be loaded" : "Recent trailers"}</div><div class="chips">${chips.map(t => `<button data-act="chip" data-v="${esc(t)}">${esc(t)}</button>`).join("")}</div></div>` : ""}
+      ${S.pad && (e.loadType || ul) ? planNote(planFor({ ...e, trailer:S.pad.toUpperCase() })) : ""}
+      ${padHtml("trailer")}`;
+  }
+  else if (step === "status") {
+    const hints = { empty:"Nothing on it", loading:"Being loaded now", loaded:"Full, ready to go", unloading:"Being unloaded now", oos:"Can't be used" };
+    body = `<div class="qhead"><p class="q">Status</p><span class="label">#${esc(e.trailer)} · ${esc(e.loadType)}</span></div>
+      <div class="tiles">${CLICKER_STATUSES.map(([v, l]) => `<button class="tile ${v === "oos" ? "oos" : ""} ${e.yardStatus === v ? "pick" : ""}" data-act="status" data-v="${v}"><b>${l}</b><span>${hints[v]}</span></button>`).join("")}</div>`;
+  }
+  else if (step === "hauler") {
+    body = `<div class="qhead"><p class="q">Hauler</p><span class="label">${esc(e.loadType)}</span></div>
+      <div class="tiles">${Object.entries(HAULERS).map(([v, l]) => `<button class="tile ${e.hauler === v ? "pick" : ""}" data-act="hauler" data-v="${v}"><b>${l}</b><span>${v === "liberty" ? "Our trailer" : "Outside hauler's trailer"}</span></button>`).join("")}</div>`;
+  }
+  else if (step === "use") {
+    body = `<div class="qhead"><p class="q">${e.loadFlow ? (e.yardStatus === "loading" ? "Loading with" : "Loaded with") : "Used for"}</p><span class="label">${e.loadFlow ? (e.yardStatus === "loading" ? "Loading trailer" : "Loaded trailer") : "Empty trailer"}</span></div>
+      <div class="tiles">${USE_FOR.filter(t => !(e.loadFlow && t === "OUTBOUND")).map(t => `<button class="tile ob ${e.loadType === t ? "pick" : ""}" data-act="use" data-v="${esc(t)}"><b>${esc(t)}</b>${t === "OUTBOUND" ? "<span>Not assigned yet</span>" : ""}</button>`).join("")}</div>`;
+  }
+  else if (step === "note") {
+    body = `<div class="qhead"><p class="q">Note</p><span class="label">#${esc(e.trailer)} · ${esc(e.loadType)} · optional</span></div>
+      <div class="padwrap"><div class="display"><input id="noteInput" value="${esc(S.pad)}" maxlength="120" placeholder="Anything the manager should know" autocomplete="off" aria-label="Note" style="text-transform:none;font-family:var(--f-body);font-size:1.4rem"></div>
+        <button class="primary next" data-act="note-next">Next</button>
+        <button data-act="note-skip">No note</button></div>`;
+  }
+  else if (step === "reason") {
+    const recent = [...new Set(S.records.map(r => r.oosReason).filter(Boolean))].slice(0, 8);
+    body = `<div class="qhead"><p class="q">Out of service: why?</p></div>
+      ${recent.length ? `<div class="chips">${recent.map(x => `<button data-act="reason-chip" data-v="${esc(x)}" style="font-family:var(--f-body)">${esc(x)}</button>`).join("")}</div>` : ""}
+      <div class="padwrap"><div class="display"><input id="reasonInput" value="${esc(S.pad)}" maxlength="60" placeholder="e.g. flat tire" autocomplete="off" aria-label="Out of service reason" style="text-transform:none;font-family:var(--f-body);font-size:1.6rem"></div>
+        <button class="primary next" data-act="reason-next">Next</button></div>`;
+  }
+  else if (step === "tires") {
+    body = `<div class="qhead"><p class="q">Tire count</p><span class="label">#${esc(e.trailer)} · ${esc(e.loadType)} · ${esc(statusLabel(e.yardStatus))}</span></div>${padHtml("tires")}`;
+  }
+  else if (step === "loaded") {
+    body = `<div class="qhead"><p class="q">Loaded weight</p><span class="label">Scale ticket, lbs</span></div>${padHtml("loaded")}`;
+  }
+  else if (step === "empty") {
+    body = `<div class="qhead"><p class="q">Unloaded weight</p><span class="label">Empty trailer, lbs</span></div>
+      ${padHtml("empty")}`;
+  }
+  else if (step === "review" && e.direction === "unloaded") {
+    const plan = planFor(e), c = plan.cur;
+    body = `<div class="qhead"><p class="q">Mark unloaded</p></div>
+      <div class="review">
+        <div><span class="label">Trailer #</span><b>#${esc(e.trailer)}</b></div>
+        <div><span class="label">Came in as</span><b>${esc(c ? c.loadType : e.loadType)}</b>${c ? `<span class="sub">In since ${when(c.arrivedAt)}</span>` : ""}</div>
+        <div><span class="label">Status</span><b>Unloaded</b></div>
+        ${c && c.loadType === "ROUTE" ? (c.tires != null ? `<div class="netcell"><span class="label">Tire count</span><b class="num">${fmt(c.tires)}</b></div>` : "")
+          : `<div class="netcell"><span class="label">Unloaded weight</span><b class="num">${e.empty == null ? "—" : fmt(e.empty)}</b><span class="sub">Net is worked out on the manager page</span></div>`}
+      </div>
+      ${planNote(plan)}
+      <button class="primary save" data-act="save" ${S.saving || plan.kind === "blocked" ? "disabled" : ""}>${S.saving ? "Saving…" : "Mark unloaded"}</button>
+      <button data-act="restart">Start over</button>`;
+  }
+  else if (step === "review" && (e.emptyFlow || e.loadFlow)) {
+    const plan = planFor(e);
+    body = `<div class="qhead"><p class="q">Check and save</p></div>
+      <div class="review">
+        <div><span class="label">Trailer #</span><b>#${esc(e.trailer)}</b></div>
+        <div><span class="label">${e.loadFlow ? (e.yardStatus === "loading" ? "Loading with" : "Loaded with") : "Empty trailer for"}</span><b>${esc(e.loadType)}</b><span class="sub">Outbound · ${esc(statusLabel(e.yardStatus))}</span></div>
+        ${HAULER_TYPES.includes(e.loadType) ? `<div><span class="label">Hauler</span><b>${esc(HAULERS[e.hauler] || "—")}</b></div>` : ""}
+        ${e.loadFlow && e.yardStatus === "loading" ? ""
+          : e.loadFlow
+          ? (COUNT_TYPES.includes(e.loadType)
+            ? `<div class="netcell"><span class="label">Tire count</span><b class="num">${e.tires == null ? "—" : fmt(e.tires)}</b></div>`
+            : `<div class="netcell"><span class="label">Loaded weight</span><b class="num">${e.loaded == null ? "—" : fmt(e.loaded)}</b></div>`)
+          : `<div class="netcell"><span class="label">Unloaded weight</span><b class="num">${e.empty == null ? "—" : fmt(e.empty)}</b></div>`}
+        <div style="grid-column:1/-1"><span class="label">Note</span><b style="font-family:var(--f-body);font-weight:500;font-size:1.1rem">${e.note ? esc(e.note) : "—"}</b></div>
+      </div>
+      ${planNote(plan)}
+      <button class="primary save" data-act="save" ${S.saving || plan.kind === "blocked" ? "disabled" : ""}>${S.saving ? "Saving…" : plan.kind === "close" ? "Close out and save" : plan.kind === "update" ? "Update trailer" : "Save trailer"}</button>
+      <button data-act="restart">Start over</button>`;
+  }
+  else if (step === "review") {
+    const net = netOf(e), plan = planFor(e);
+    body = `<div class="qhead"><p class="q">Check and save</p></div>
+      <div class="review">
+        <div><span class="label">Trailer #</span><b>#${esc(e.trailer)}</b></div>
+        <div><span class="label">Load type</span><b>${esc(e.loadType)}</b><span class="sub">${e.direction === "inbound" ? "Inbound" : "Outbound"}</span></div>
+        <div><span class="label">Status</span><b>${esc(statusLabel(e.yardStatus))}</b>${e.yardStatus === "oos" ? `<span class="sub">${esc(e.oosReason || "")}</span>` : ""}</div>
+        ${HAULER_TYPES.includes(e.loadType) ? `<div><span class="label">Hauler</span><b>${esc(HAULERS[e.hauler] || "—")}</b></div>` : ""}
+        ${COUNT_TYPES.includes(e.loadType)
+          ? `<div class="netcell"><span class="label">Tire count</span><b class="num">${e.tires == null ? "—" : fmt(e.tires)}</b></div>`
+          : `<div><span class="label">Loaded weight</span><b class="num">${e.loaded == null ? "—" : fmt(e.loaded)}</b></div>
+        <div><span class="label">Unloaded weight</span><b class="num">${e.empty == null ? "—" : fmt(e.empty)}</b></div>
+        <div class="netcell"><span class="label">Net (tons)</span><b class="num">${net == null ? "—" : fmtT(net)}</b></div>`}
+      </div>
+      ${planNote(plan)}
+      <button class="primary save" data-act="save" ${S.saving || plan.kind === "blocked" ? "disabled" : ""}>${S.saving ? "Saving…" : plan.kind === "close" ? "Close out and save" : plan.kind === "update" ? "Update trailer" : "Save trailer"}</button>
+      <button data-act="restart">Start over</button>`;
+  }
+  // Start over: clears every button tapped on this entry (nothing is saved until Save) and goes back to Load type.
+  const restart = Object.keys(e).length || step !== "type" ? `<button class="restart" data-act="restart" aria-label="Start over and clear this entry">↺ Start over</button>` : "";
+  const mgrNote = "";
+  el.innerHTML = `<div class="clk">${mgrNote}${lastHtml()}<div class="crumbs">${crumbs}${restart}</div>${body}</div>`;
+  if (S.kb && step === "trailer") { const k = $("kbInput"); if (k) { k.focus(); k.setSelectionRange(k.value.length, k.value.length); } }
+  if (step === "customer" && (S.newCust || !customerTiles().length)) $("newCust")?.focus();
+  if (step === "reason") $("reasonInput")?.focus();
+  if (step === "note") $("noteInput")?.focus();
+}
+
+$("clkView").addEventListener("input", e => {
+  if (e.target.id === "kbInput") { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ""); S.pad = e.target.value; }
+  if (e.target.id === "newCust" || e.target.id === "reasonInput" || e.target.id === "noteInput") S.pad = e.target.value;
+  if (e.target.id === "dupBox") S.checkoutDup = e.target.checked;
+});
+$("clkView").addEventListener("change", e => { if (e.target.id === "dupBox") S.checkoutDup = e.target.checked; });
+$("clkView").addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  if (e.target.id === "kbInput") { e.preventDefault(); e.target.blur(); padNext(); }
+  if (e.target.id === "newCust") { e.preventDefault(); e.target.blur(); custNew(); }
+  if (e.target.id === "reasonInput") { e.preventDefault(); e.target.blur(); reasonNext(); }
+  if (e.target.id === "noteInput") { e.preventDefault(); e.target.blur(); S.e.note = (S.pad || "").replace(/\s+/g, " ").trim(); nextStep(); }
+});
+
+function padNext(){
+  const s = S.step;
+  if (s === "trailer") {
+    const t = S.pad.trim().toUpperCase().replace(/^-+|-+$/g, "");
+    if (!t) return toast("Enter the trailer number.");
+    S.e.trailer = t; S.kb = false; prefillLoad(); return nextStep();
+  }
+  const n = S.pad ? Number(S.pad) : null;
+  if (s === "tires") {
+    if (n == null) return toast("Punch in the tire count, or tap No count.");
+    S.e.tires = n; return nextStep();
+  }
+  if (n == null) return toast("Punch in the weight, or tap No weight.");
+  if (s === "loaded") { S.e.loaded = n; if ("empty" in S.e && S.e.empty != null && n < S.e.empty) { toast("Loaded is less than the empty weight. Check the scale ticket."); return; } return nextStep(); }
+  if (s === "empty") {
+    if (S.e.loaded != null && n > S.e.loaded) return toast("Empty weight is more than loaded weight. Check the scale ticket.");
+    S.e.empty = n; return nextStep();
+  }
+}
+function reasonNext(){
+  const x = (S.pad || "").replace(/\s+/g, " ").trim();
+  if (!x) return toast("Type why it's out of service.");
+  S.e.oosReason = x; nextStep();
+}
+function custNew(){
+  const c = (S.pad || "").replace(/\s+/g, " ").trim();
+  if (!c) return toast("Type the customer name.");
+  const match = customerTiles().find(x => x.toLowerCase() === c.toLowerCase());
+  S.e.customer = match || c; nextStep();
+}
+
+$("clkView").addEventListener("click", async ev => {
+  const b = ev.target.closest("button[data-act]"); if (!b || b.disabled) return;
+  const a = b.dataset.act; buzz(); keepAwake();
+  if (a === "pick-emp") { S.emp = b.dataset.id; lsSet("ty-emp", S.emp); applyManager(); route(); touchPeople(); window.scrollTo(0,0); return; }
+  if (a === "crumb") return goStep(b.dataset.s);
+  if (a === "unload") { S.e = { direction:"unloaded" }; return goStep("trailer"); }
+  if (a === "loading-trailer") { S.e = { direction:"outbound", loadFlow:true, yardStatus:"loading" }; return goStep("trailer"); }
+  if (a === "loaded-trailer") { S.e = { direction:"outbound", loadFlow:true, yardStatus:"loaded" }; return goStep("trailer"); }
+  if (a === "empty-trailer") { S.e = { direction:"outbound", emptyFlow:true, yardStatus:"empty" }; return goStep("use"); }
+  if (a === "use") { S.e.loadType = b.dataset.v; if (!HAULER_TYPES.includes(S.e.loadType)) delete S.e.hauler; return nextStep(); }
+  if (a === "note-next") { S.e.note = (S.pad || "").replace(/\s+/g, " ").trim(); return nextStep(); }
+  if (a === "note-skip") { S.e.note = ""; return nextStep(); }
+  if (a === "type") {
+    S.e.loadType = b.dataset.v; S.e.direction = b.dataset.dir;
+    if (!HAULER_TYPES.includes(S.e.loadType)) delete S.e.hauler;
+    if (COUNT_TYPES.includes(S.e.loadType)) { delete S.e.loaded; delete S.e.empty; } else delete S.e.tires;
+    if (S.e.yardStatus === "empty") { if (COUNT_TYPES.includes(S.e.loadType)) S.e.tires = null; else S.e.loaded = null; }
+    return nextStep();
+  }
+  if (a === "status") {
+    const was = S.e.yardStatus, v = b.dataset.v;
+    S.e.yardStatus = v;
+    if (v === "empty") { S.e.loaded = null; S.e.tires = null; } else if (was === "empty") { delete S.e.loaded; delete S.e.tires; }
+    if (v !== "oos") delete S.e.oosReason;
+    return nextStep();
+  }
+  if (a === "hauler") { S.e.hauler = b.dataset.v; return nextStep(); }
+  if (a === "reason-chip") { S.e.oosReason = b.dataset.v; return nextStep(); }
+  if (a === "reason-next") return reasonNext();
+  if (a === "cust") { if (S.e.customer !== b.dataset.v) delete S.e.trailer; S.e.customer = b.dataset.v; return nextStep(); }
+  if (a === "cust-new") { S.newCust = true; S.pad = ""; return renderClicker(); }
+  if (a === "cust-list") { S.newCust = false; S.pad = ""; return renderClicker(); }
+  if (a === "cust-new-next") return custNew();
+  if (a === "chip") { S.pad = b.dataset.v; S.e.trailer = b.dataset.v; prefillLoad(); return nextStep(); }
+  if (a === "kb") { S.kb = !S.kb; return renderClicker(); }
+  if (a === "key") {
+    const k = b.dataset.k, isW = S.step !== "trailer", isT = S.step === "tires", max = isT ? 5 : isW ? 6 : 14;
+    if (k === "bk") S.pad = S.pad.slice(0, -1);
+    else if (k === "clr") S.pad = "";
+    else if (isW && !S.pad && /^0+$/.test(k)) { if (isT && k === "0") S.pad = "0"; }
+    else if (isT && S.pad === "0") S.pad = k.replace(/^0+/, "") || "0";
+    else if ((S.pad + k).length <= max) S.pad += k;
+    else toast(isT ? "That's more than 99,999 tires." : isW ? "That's more than 999,999 lbs." : "Trailer numbers are 14 characters at most.");
+    return renderClicker();
+  }
+  if (a === "skip") { if (S.step === "tires") S.e.tires = null; else if (S.step === "loaded") S.e.loaded = null; else S.e.empty = null; return nextStep(); }
+  if (a === "pad-next") return padNext();
+  if (a === "restart") { S.e = {}; return goStep("type"); }
+  if (a === "save") return saveEntry();
+  if (a === "undo") return undoLast();
+});
+
+// One live entry per trailer on the yard. What saving this entry does to the one already there:
+//   new    - trailer isn't on the yard: add it (inbound starts "open")
+//   update - same direction as what's there: update its status, count or weights
+//   close  - an open inbound trailer logged as outbound: close it out as "completed"
+//   blocked- inbound on a trailer that is already completed or outbound: the manager departs it first
+function planFor(e){
+  const dir = e.direction || directionOf({ loadType:e.loadType });
+  const cur = e.trailer ? inYard(e.trailer) : null;
+  // Unloaded section: the link that marks an open inbound trailer as unloaded
+  if (dir === "unloaded") {
+    if (!cur) return { kind:"blocked", dir, why:"missing" };
+    if (phaseOf(cur) !== "open") return { kind:"blocked", dir, cur, why:"notopen" };
+    return { kind:"unload", dir, cur };
+  }
+  if (!cur) return { kind:"new", dir };
+  const cp = phaseOf(cur);
+  if (dir === "outbound" && cp === "open") return { kind:"close", dir, cur };
+  if (dir === "inbound" && cp === "open") return { kind:"update", dir, cur };
+  if (dir === "outbound") return { kind:"update", dir, cur };
+  return { kind:"blocked", dir, cur };
+}
+function planNote(p){
+  if (!p || p.kind === "new") return "";
+  if (p.why === "missing") return `<div class="note bad">That trailer isn't on the yard. Log it under Inbound when it comes in.</div>`;
+  if (p.why === "notopen") return `<div class="note bad">#${esc(p.cur.trailer)} isn't an open inbound trailer (it's ${esc(yardLabel(p.cur))}, ${esc(p.cur.loadType)}).</div>`;
+  if (p.kind === "unload") return p.cur.unloadedAt
+    ? `<div class="note">#${esc(p.cur.trailer)} was already marked unloaded ${when(p.cur.unloadedAt)}. Saving updates the time.</div>`
+    : `<div class="note"><b>#${esc(p.cur.trailer)} · ${esc(p.cur.loadType)}</b> (in since ${when(p.cur.arrivedAt)}). Saving marks it unloaded. It stays open until it's closed out through Outbound.</div>`;
+  const c = p.cur, what = `${esc(c.loadType)}, ${esc(statusLabel(yardStatusOf(c)))}`;
+  if (p.kind === "close") return `<div class="note"><b>Closes out #${esc(c.trailer)}.</b> It came in as ${what} (${when(c.arrivedAt)}). Saving marks it Completed. It stays on the yard until the manager departs it.</div>`;
+  if (p.kind === "update") return `<div class="note">#${esc(c.trailer)} is already on the yard as ${what}. Saving updates that entry.</div>`;
+  return `<div class="note bad">#${esc(c.trailer)} is on the yard as ${yardLabel(c) === "Completed" ? "Completed" : "an outbound trailer"}. The manager has to depart it before it can be logged inbound again.</div>`;
+}
+// Weights typed on the clicker. A manager's go straight to the manager-only store; an employee's go into
+// their own drop box (wsub/<their id>/entries), which they can write but only managers can read back.
+async function saveEntryWeights(id, trailer, gross, tare, name, suffix){
+  if (managerUI()) {
+    const was = wOf({ id });
+    await saveWeights(id, trailer, gross ?? was.gross, tare ?? was.tare); return "weights/" + id;
+  }
+  if (!S.me) { toast("Weights not saved: not connected to the yard database. Reload and try again."); return null; }
+  const at = Date.now();
+  await S.db.doc("wsub/" + S.me).set({ at, name });
+  const path = "wsub/" + S.me + "/entries/" + id + (suffix || "");
+  await S.db.doc(path).set({ trailerId:id, trailer, gross, tare, net: gross != null && tare != null ? gross - tare : null, at, by:name });
+  return path;
+}
+async function saveEntry(){
+  const e = S.e;
+  const missing = activeSteps().find(([s]) => s !== "review" && !stepDone(s));
+  if (missing) { toast(`Finish the ${missing[1]} step first.`); return goStep(missing[0]); }
+  if (e.loaded != null && e.empty != null && e.loaded < e.empty) return toast("Loaded weight is less than empty weight. Fix a weight first.");
+  const plan = planFor(e);
+  if (plan.kind === "blocked") return toast(plan.why ? "That trailer can't be marked unloaded. See the note above." : "The manager has to depart this trailer first.");
+  const emp = empById(S.emp), mgr = managerUI(), now = Date.now();
+  const name = mgr ? "Manager" : (emp ? emp.name : "");
+  if (plan.kind === "unload") {
+    const c = plan.cur, prev = Object.fromEntries(Object.entries(c).filter(([k]) => k !== "id"));
+    S.saving = true; renderClicker(); setSync("busy", "Saving…");
+    try {
+      await S.db.collection("trailers").doc(c.id).update({ yardStatus:"unloaded", unloadedAt:now, unloadedBy:name, updatedAt:now, updatedBy:name });
+      const wPath = e.empty != null ? await saveEntryWeights(c.id, c.trailer, null, e.empty, name, "__unload") : null;
+      S.last = { id:c.id, kind:"unload", prev, wPath, trailer:c.trailer, customer:c.customer || "", loadType:"Unloaded · " + c.loadType, net:null, tires:null, at:now };
+      S.flash = true; S.e = {}; S.saving = false; setSync("ok", "Saved");
+      goStep("type");
+    } catch (err) { S.saving = false; setSync("err", "Not saved"); renderClicker(); writeError(err); }
+    return;
+  }
+  const counted = COUNT_TYPES.includes(e.loadType);
+  const fields = {
+    loadType:e.loadType, direction:plan.dir, yardStatus:e.yardStatus, ...(e.emptyFlow || e.loadFlow ? { note:e.note || "" } : {}),
+    tires: counted ? (e.tires ?? null) : null,
+    hauler: HAULER_TYPES.includes(e.loadType) ? e.hauler : "", oosReason: e.yardStatus === "oos" ? e.oosReason : ""
+  };
+  const who = { by:S.me, role: mgr ? "manager" : "employee", empId: mgr ? "" : (emp ? emp.id : ""), empName: mgr ? "" : (emp ? emp.name : "") };
+  S.saving = true; renderClicker(); setSync("busy", "Saving…");
+  try {
+    let id, prev = null;
+    if (plan.kind === "new") {
+      const ref = await S.db.collection("trailers").add({ trailer:e.trailer, customer:custFor(e), ...fields, phase: plan.dir === "inbound" ? "open" : "",
+        status:"in", arrivedAt:now, departedAt:null, ...who });
+      id = ref.id;
+    } else {
+      const c = plan.cur; id = c.id;
+      prev = Object.fromEntries(Object.entries(c).filter(([k]) => k !== "id"));
+      const upd = { ...fields, updatedAt:now, updatedBy:name };
+      if (plan.kind === "close") Object.assign(upd, {
+        phase:"completed", completedAt:now, completedBy:name,
+        inbound:{ loadType:c.loadType, yardStatus:yardStatusOf(c), tires:c.tires ?? null, loaded:c.loaded ?? null, empty:c.empty ?? null, arrivedAt:c.arrivedAt || null, empName:c.empName || "" }
+      });
+      await S.db.collection("trailers").doc(id).update(upd);
+    }
+    let wPath = null;
+    if ((!counted || e.emptyFlow) && (e.loaded != null || e.empty != null)) wPath = await saveEntryWeights(id, e.trailer, e.loaded ?? null, e.empty ?? null, name,
+      // each kind of entry gets its own record, so an empty trailer's unloaded weight is kept
+      // until the loaded weight comes in later (even from the same employee)
+      e.emptyFlow ? "__empty" : e.loadFlow ? "__loaded" : "");
+    S.last = { id, kind:plan.kind, prev, wPath, trailer:e.trailer, customer:custFor(e),
+      loadType:(plan.kind === "close" ? "Completed · " : plan.kind === "update" ? "Updated · " : "") + e.loadType + " · " + statusLabel(e.yardStatus),
+      net:null, tires: counted ? (e.tires ?? null) : null, at:now };
+    S.flash = true; S.e = {}; S.saving = false; setSync("ok", "Saved");
+    goStep("type");
+  } catch (err) { S.saving = false; setSync("err", "Not saved"); renderClicker(); writeError(err); }
+}
+async function undoLast(){
+  const l = S.last; if (!l) return;
+  try {
+    const ref = S.db.collection("trailers").doc(l.id);
+    if (l.kind === "new") await ref.delete(); else await ref.set(l.prev);
+    if (l.wPath) { try { await S.db.doc(l.wPath).delete(); } catch {} }
+    S.last = null; toast(l.kind === "new" ? `Removed #${l.trailer}.` : `Put #${l.trailer} back the way it was.`); renderClicker();
+  } catch (err) { writeError(err); }
+}
+
+/* =====================================================================
+   CONNECT
+   ===================================================================== */
+applyHash();
+const savedView = lsGet("ty-view"); if (["sheet","clicker","employees"].includes(savedView)) S.view = savedView;
+route();
+
+(async () => {
+  if (window.backendReady) { try { await window.backendReady; } catch {} }
+  if (!window.claude?.use) { S.connected = true; S.isManager = true; showBanner(window.backendError || "This site isn't connected to its database yet. Fill in config.js (see README) to save trailers to the shared yard sheet."); route(); return; }
+  const [db, user, dl, mcp] = await Promise.all([claude.use("db"), claude.use("user"), claude.use("downloads"), claude.use("mcp")]);
+  S.db = db; S.user = user; S.dl = dl; S.mcp = mcp;
+  $("dlBtn").hidden = !dl;
+  if (user) {
+    try { S.isOwner = await user.isOwner(); } catch {}
+    try { S.me = await user.id(); } catch {}
+    try { if ((await user.can("data.write")) === false) S.canWrite = false; } catch {}
+  }
+  // The manager page is for the owner and the people the owner marks as managers (Employees tab).
+  // Everyone else, Editors included, gets the clicker.
+  if (db && !S.isOwner) {
+    try { const m = await db.doc("config/managers").get(); S.managerIds = m.exists && Array.isArray(m.data().ids) ? m.data().ids : []; } catch {}
+  }
+  S.isManager = computeManager();
+  // Google Sheet auto-updates run from manager pages that have Google Sheets connected (the owner's always tries).
+  if (mcp) { try { const lt = await mcp.listTools(GS_SERVER); S.gsAvailable = (lt.servers || []).some(x => x.server === GS_SERVER && x.authStatus === "connected"); } catch { S.gsAvailable = false; } }
+  S.connected = true;
+  if (!S.canWrite && managerUI()) showBanner("View-only: this device can see the yard sheet but not add or change trailers.");
+  if (!db) { setSync("err", "Not connected"); route(); return; }
+  setSync("ok", "Live");
+  route();
+  db.doc("config/employees").onSnapshot(s => {
+    S.employees = s.exists && Array.isArray(s.data().list) ? s.data().list : [];
+    S.empReady = true; route();
+  }, () => { S.empReady = true; route(); });
+  db.doc("config/gsheet").onSnapshot(s => {
+    S.gs = s.exists ? s.data() : null; S.gsReady = true;
+    if (S.gs && (S.gs.minVersion || 0) > PAGE_VERSION && !S.outdated) {
+      // a newer version of this page is in use: stop writing the sheet and load the newest version
+      S.outdated = true; clearTimeout(autoT);
+      showBanner("A newer version of this page is out. Reloading…");
+      setTimeout(() => location.reload(), 2000);
+    }
+    renderGs(); maybeAutoSync(); }, () => { S.gsReady = true; renderGs(); });
+  db.doc("config/managers").onSnapshot(s => {
+    S.managerIds = s.exists && Array.isArray(s.data().ids) ? s.data().ids : [];
+    applyManager();
+    route();
+  }, () => {});
+  // Each person who opens the page leaves their id (and the name they picked), so the owner can mark managers.
+  if (S.me) touchPeople();
+  if (S.isOwner) db.collection("people").onSnapshot(q => {
+    S.people = q.docs.map(d => ({ id:d.id, ...d.data() })); renderEmployees();
+  }, () => {});
+  startManagerFeeds();
+  db.collection("trailers").onSnapshot(snap => {
+    S.records = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    S.recordsReady = true;
+    route();
+    maybeAutoSync();
+  }, () => { setSync("err", "Disconnected"); showBanner("Lost the live connection to the yard sheet. Reload the page to reconnect."); });
+})();
+let feedsOn = false;
+function startManagerFeeds(){
+  const db = S.db;
+  if (!db || !S.isManager || feedsOn) return; feedsOn = true;
+  if (S.isManager) db.collection("weights").onSnapshot(snap => {
+    const m = {}; snap.docs.forEach(d => { m[d.id] = d.data(); }); S.weights = m; route(); maybeAutoSync();
+  }, () => {});
+  if (S.isManager) {
+    const perEmp = {}, subs = {};
+    const merge = () => {
+      const m = {};
+      Object.values(perEmp).forEach(list => list.forEach(w => { (m[w.trailerId] = m[w.trailerId] || []).push(w); }));
+      S.empWeights = m; route(); maybeAutoSync();
+    };
+    db.collection("wsub").onSnapshot(snap => {
+      snap.docs.forEach(d => {
+        if (subs[d.id]) return;
+        subs[d.id] = db.collection("wsub/" + d.id + "/entries").onSnapshot(q => {
+          perEmp[d.id] = q.docs.map(x => { const w = x.data(); return { ...w, trailerId: w.trailerId || x.id.split("__")[0] }; }); merge();
+        }, () => {});
+      });
+    }, () => {});
+  }
+}
+async function touchPeople(){
+  if (!S.db || !S.me) return;
+  try {
+    const ref = S.db.doc("people/" + S.me), cur = await ref.get(), picked = (empById(S.emp) || {}).name || "";
+    const d = cur.exists ? cur.data() : null;
+    if (!d || Date.now() - (d.at || 0) > 3600e3 || (d.picked || "") !== picked) await ref.set({ at:Date.now(), picked });
+  } catch {}
+}
+})();
+</script>
+
+</body></html>

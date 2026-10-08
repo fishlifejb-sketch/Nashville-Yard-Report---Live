@@ -1,0 +1,29 @@
+rules_version = '2';
+// Paste this whole file into Firebase console → Firestore Database → Rules, then Publish.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isOwner() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/owner/main)
+        && get(/databases/$(database)/documents/owner/main).data.uid == request.auth.uid;
+    }
+
+    // Who owns the site. Set once by the first device that opens the manager page; never changed from the site.
+    match /owner/{doc} {
+      allow read: if signedIn();
+      allow create: if signedIn() && doc == "main" && request.resource.data.uid == request.auth.uid;
+    }
+
+    // Settings. Only the owner can change the managers list.
+    match /config/{doc} {
+      allow read: if signedIn();
+      allow write: if signedIn() && (doc != "managers" || isOwner());
+    }
+
+    // Everything else (trailers, weights, people, snapshots, employee weight entries).
+    match /{coll}/{rest=**} {
+      allow read, write: if signedIn() && coll != "owner" && coll != "config";
+    }
+  }
+}
