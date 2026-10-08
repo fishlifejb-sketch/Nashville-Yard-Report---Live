@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+/* page reset (the Claude version got this from its host) */
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{margin:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+</style>
+<script>window.GAS_INIT=<?!= init ?>;</script>
+<title>Tire Clicker Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: floor tool. Workers get one big-target step at a time (rim → size → grade, each grade showing its trailer). Managers also get Trailers, Routing and Setup tabs. Tire-crayon yellow is the only accent; grade colors are a separate code. */
+:root{
+  --bg:#E9EAE6; --surface:#F7F7F4; --surface2:#DEE0DB; --ink:#1B1D1F; --muted:#5D625E; --line:#C9CCC6;
+  --accent:#F2BC1B; --accent-ink:#1B1D1F; --danger:#B3402F; --ok:#2E7D5B; --warnbg:#FBEBD0;
+  --g1:#2E7D5B; --g2:#2F69A8; --g3:#7A5AAE; --g4:#B8741A; --g5:#B3402F;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141618; --surface:#1D2023; --surface2:#272B2F; --ink:#ECEDEA; --muted:#9BA19D; --line:#353A3E;
+    --accent:#F4C430; --accent-ink:#141618; --danger:#E0705E; --ok:#5DBB8E; --warnbg:#3A2F1A;
+    --g1:#5DBB8E; --g2:#6FA3DE; --g3:#A98BDB; --g4:#E3A04A; --g5:#E0705E;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141618; --surface:#1D2023; --surface2:#272B2F; --ink:#ECEDEA; --muted:#9BA19D; --line:#353A3E;
+  --accent:#F4C430; --accent-ink:#141618; --danger:#E0705E; --ok:#5DBB8E; --warnbg:#3A2F1A;
+  --g1:#5DBB8E; --g2:#6FA3DE; --g3:#A98BDB; --g4:#E3A04A; --g5:#E0705E;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:16px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+#app{max-width:1000px;margin:0 auto;padding-inline:16px;padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
+#app.worker{padding-block:0 calc(24px + env(safe-area-inset-bottom,0px))}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;gap:12px;padding-block:12px;border-bottom:1px solid var(--line)}
+.brand{font-family:var(--display);font-weight:700;font-size:1.25rem;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.brand i{display:inline-block;width:.7em;height:.7em;border-radius:50%;border:.18em solid var(--accent);margin-right:.35em;vertical-align:-.05em}
+.role{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--surface2);color:var(--muted)}
+.status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted)}
+.sync{width:10px;height:10px;border-radius:50%;background:var(--muted);flex:none}
+.sync.ok{background:var(--ok)} .sync.busy{background:var(--accent)} .sync.err{background:var(--danger)}
+
+.crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding-block:14px 10px}
+.crumbs button{background:none;border:0;padding:6px 2px;font-family:var(--display);font-weight:600;font-size:1.15rem;letter-spacing:.02em;color:var(--muted)}
+.crumbs button.on{color:var(--ink)}
+.crumbs .sep{color:var(--line);font-weight:700}
+.loadtotal{margin-left:auto;font-size:.9rem;color:var(--muted)}
+.loadtotal b{font-family:var(--display);font-size:1.25rem;color:var(--ink)}
+.eyebrow{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.tiles.sizes{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;min-height:92px;display:flex;flex-direction:column;justify-content:space-between;gap:6px;text-align:left;transition:transform .06s}
+.tile:active{transform:scale(.98)}
+.tile .big{font-family:var(--display);font-weight:700;font-size:2.2rem;line-height:1}
+.tile.size .big{font-size:1.55rem;letter-spacing:.01em}
+.tile .meta{font-size:.85rem;color:var(--muted)}
+.tile .meta b{color:var(--ink);font-weight:600}
+.tile.has{border-color:color-mix(in srgb,var(--accent) 70%,var(--line))}
+.bars{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--surface2)}
+.bars span{display:block;height:100%}
+
+.gradehead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-block:4px 14px}
+.gradehead h2{margin:0;font-family:var(--display);font-weight:700;font-size:2.6rem;line-height:1;letter-spacing:.01em}
+.sizetotal{text-align:right;color:var(--muted);font-size:.9rem}
+.sizetotal b{display:block;font-family:var(--display);font-size:2.2rem;line-height:1;color:var(--ink)}
+.grades{display:grid;grid-template-columns:1fr;gap:10px}
+.grade{position:relative;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;min-height:84px;padding:10px 18px 10px 14px;background:var(--surface);border:1px solid var(--line);border-left:10px solid var(--gc);border-radius:var(--radius);text-align:left;touch-action:manipulation;user-select:none;-webkit-user-select:none;overflow:hidden}
+.grade:active{transform:scale(.99)}
+.grade .gl{display:flex;flex-direction:column;line-height:1}
+.grade .gl small{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.grade .gl span{font-family:var(--display);font-weight:700;font-size:2.4rem;color:var(--gc)}
+.grade .gl span.txt{font-size:1.5rem}
+.grade .gc{font-family:var(--display);font-weight:700;font-size:2.4rem;grid-column:3}
+.dest{grid-column:2;display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.dest small{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.dest b{font-family:var(--display);font-weight:700;font-size:1.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dest.none b{color:var(--danger);font-size:1.1rem}
+.need{font-style:normal;font-size:.85rem;font-weight:700;color:var(--ok);white-space:nowrap}
+.need.full{color:var(--danger);letter-spacing:.04em}
+.last .lw .need{width:100%}
+.fill{display:flex;flex-direction:column;gap:6px}
+.fillbar{height:10px;border-radius:5px;background:var(--surface2);overflow:hidden}
+.fillbar span{display:block;height:100%;background:var(--ok);border-radius:5px}
+.shortlist{display:flex;flex-wrap:wrap;gap:6px}
+.short{font-size:.82rem;padding:3px 8px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
+.short b{color:var(--ink);font-weight:600}
+table.amt{min-width:360px}
+table.amt input.amtin{width:84px;min-height:38px;padding:6px 8px;text-align:right}
+table.amt td.left,table.amt td.over{color:var(--danger);font-weight:700}
+table.amt td.ok{text-align:center}
+table.amt td.ok input{width:22px;height:22px;margin:0;accent-color:var(--ok)}
+.need.met{color:var(--ok)}
+table.amt tr.rimrow td{font-family:var(--body);font-size:1rem}
+table.amt tr.rimrow td:first-child{font-family:var(--display);font-size:1.1rem}
+table.amt td.done{color:var(--ok);font-weight:700}
+.dest.hold b{display:inline-block;align-self:flex-start;background:var(--ink);color:var(--accent);padding:1px 8px;border-radius:4px;letter-spacing:.06em}
+.holdtag{align-self:flex-start;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:4px;background:var(--ink);color:var(--accent);white-space:nowrap}
+.tile.holdtile{border-style:dashed;border-color:var(--ink)}
+.tile.dntile{border-color:var(--danger)}
+.tile .tags{display:flex;flex-wrap:wrap;gap:4px}
+.tile .tags:empty{display:none}
+.holdtag.dntag{background:var(--danger);color:var(--surface)}
+.grade.dn{border-color:var(--danger);border-left-color:var(--danger);background:repeating-linear-gradient(-45deg,var(--surface) 0 12px,color-mix(in srgb,var(--danger) 10%,var(--surface)) 12px 24px)}
+.grade.dn .gl span,.grade.dn .gc{color:var(--muted)}
+.dest.dn b{color:var(--danger);font-size:1.6rem;letter-spacing:.04em}
+.dest.dn small{text-transform:none;letter-spacing:0;font-size:.8rem;font-weight:600}
+@media (min-width:720px){.grade.dn{border-top-color:var(--danger)}}
+.holdcell{display:inline-block;font-size:.75rem;font-weight:700;letter-spacing:.08em;padding:6px 8px;border-radius:4px;background:var(--ink);color:var(--accent)}
+.holdcard{border:2px dashed var(--ink)}
+.dncard{border:2px solid var(--danger)}
+.who{font-size:.8rem;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--accent);color:var(--accent-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40%}
+.pickers{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.picker{min-height:72px;border-radius:var(--radius);border:1px solid var(--line);background:var(--bg);font-family:var(--display);font-weight:700;font-size:1.5rem;text-align:left;padding:0 16px}
+.gradingas{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-block:12px 0;font-size:.95rem;color:var(--muted)}
+.gradingas b{color:var(--ink)}
+.linkrow{display:flex;gap:8px;flex-wrap:wrap}
+.linkrow .in{flex:1 1 220px;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem}
+.card.off{opacity:.7}
+.offtag{background:var(--surface2);color:var(--muted)}
+.rename{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mgrbtn{margin-left:4px}
+.howto{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}
+.howto summary{cursor:pointer;font-weight:700}
+.howto ol{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:.92rem;line-height:1.45}
+.rename .in{flex:1 1 160px;min-width:0}
+.adj{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:8px;background:var(--bg);border:1px dashed var(--line)}
+table.adjt td{padding:6px 8px}
+.adjcell{display:inline-flex;align-items:center;gap:8px}
+.adjcell b{min-width:2ch;text-align:center;font-family:var(--display);font-size:1.15rem}
+.adjbtn{width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:1.15rem;line-height:1}
+.adjbtn[disabled]{opacity:.35;cursor:not-allowed}
+.dncard h3{color:var(--danger)}
+.holdrow{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--line);border-radius:8px}
+.holdrow .lr{flex:1;min-width:0;display:flex;flex-direction:column}
+.holdrow .lr span{font-size:.85rem;color:var(--muted)}
+.last.hold{border-left-color:var(--ink)}
+.last.hold .tick{color:var(--ink)}
+.grade.hit{animation:hit .35s ease-out}
+@keyframes hit{0%{background:color-mix(in srgb,var(--gc) 35%,var(--surface))}100%{background:var(--surface)}}
+.pop{position:absolute;right:18px;top:6px;font-family:var(--display);font-weight:700;color:var(--gc);animation:pop .5s ease-out forwards;pointer-events:none}
+@keyframes pop{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-18px)}}
+@media (min-width:720px){
+  .grades{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .grade{grid-template-columns:1fr;grid-template-rows:auto auto 1fr;min-height:230px;border-left-width:1px;border-top:10px solid var(--gc);padding:16px;align-items:start}
+  .dest{grid-column:1}
+  .grade .gc{grid-column:1;font-size:3.4rem;align-self:end}
+}
+.last{display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:12px;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--ok);border-radius:var(--radius)}
+.last.none{border-left-color:var(--danger)}
+.last .tick{font-size:1.4rem;font-weight:700;color:var(--ok)}
+.last.none .tick{color:var(--danger)}
+.last .lw{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:10px;line-height:1.2}
+.last .lw small{width:100%;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.last .lw b{font-family:var(--display);font-size:1.3rem}
+.last .lw span{font-weight:600;color:var(--muted)}
+.last.fresh{animation:fresh .6s ease-out}
+@keyframes fresh{0%{background:color-mix(in srgb,var(--ok) 30%,var(--surface))}100%{background:var(--surface)}}
+.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.typ{min-height:56px;border-radius:var(--radius);border:1px solid var(--line);border-left:8px solid var(--gc);background:var(--bg);font-family:var(--display);font-weight:700;font-size:1.25rem;letter-spacing:.04em;text-align:left;padding:0 12px}
+.typ{display:flex;align-items:center;gap:10px}
+.typ .box{width:22px;height:22px;flex:none;border-radius:5px;border:2px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-family:var(--body);font-size:.9rem;color:var(--surface)}
+.typ.on{background:color-mix(in srgb,var(--gc) 18%,var(--surface));border-color:var(--gc);box-shadow:inset 0 0 0 2px var(--gc)}
+.typ.on .box{background:var(--gc);border-color:var(--gc)}
+.newname{display:flex;flex-direction:column;gap:2px}
+.newname b{font-family:var(--display);font-weight:700;font-size:1.6rem;line-height:1.1}
+.chk{display:flex;align-items:flex-start;gap:10px;font-weight:600;line-height:1.35}
+.chk input{width:22px;height:22px;margin:0;flex:none;accent-color:var(--accent)}
+.chk .hint{font-weight:400}
+.actions{display:flex;flex-wrap:wrap;gap:10px;padding-block:14px}
+.actions.tight{padding-block:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 16px;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface);font-weight:600}
+.btn.sm{min-height:38px;padding:0 12px;font-size:.92rem}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--danger)}
+.btn.danger.solid{background:var(--danger);border-color:var(--danger);color:var(--surface)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.grow{flex:1 1 150px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card h3{margin:0;font-family:var(--display);font-weight:700;font-size:1.4rem;letter-spacing:.02em}
+.card.warn{background:var(--warnbg);border-color:color-mix(in srgb,var(--accent) 60%,var(--line))}
+.stack{display:flex;flex-direction:column;gap:16px;padding-block:16px}
+.rowhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);min-width:0}
+label.f.wide{grid-column:1/-1}
+.in{width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:1rem;letter-spacing:normal;text-transform:none;font-weight:500;color:var(--ink)}
+textarea.in{min-height:90px;resize:vertical;line-height:1.5}
+textarea.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92rem;min-height:260px}
+.hint{font-size:.88rem;color:var(--muted);margin:0}
+.empty{padding:28px 18px;text-align:center;color:var(--muted)}
+.empty h3{color:var(--ink)}
+.h1{font-family:var(--display);font-weight:700;font-size:1.9rem;margin:0;line-height:1.1;text-wrap:balance}
+
+.trlhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.trlhead>div:first-child{min-width:0}
+.trltotal{text-align:right;color:var(--muted);font-size:.85rem;line-height:1.1}
+.trltotal b{display:block;font-family:var(--display);font-size:2.4rem;color:var(--ink)}
+.gradeTotals{display:flex;flex-wrap:wrap;gap:8px}
+.gt{display:flex;align-items:baseline;gap:8px;padding:6px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--line);border-left:6px solid var(--gc);font-size:.9rem}
+.gt b{font-family:var(--display);font-size:1.35rem}
+.confirm{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:8px;background:var(--bg);border:1px solid var(--danger)}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:420px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface2)}
+thead th .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gc);margin-right:5px}
+tr.rimrow td{background:var(--surface2);font-family:var(--display);font-weight:700;font-size:1.1rem}
+tr.sub td{font-weight:600;color:var(--muted)}
+tr.grand td{font-family:var(--display);font-weight:700;font-size:1.2rem;border-top:2px solid var(--ink);border-bottom:0}
+td.zero{color:var(--line)}
+table.route td,table.route th{text-align:left;padding:6px 8px}
+table.route select{min-width:120px;min-height:40px;padding:6px 8px}
+table.route td.set select{border-color:color-mix(in srgb,var(--accent) 70%,var(--line))}
+table.route td.sz{font-weight:600}
+
+.loadlist{display:flex;flex-direction:column;gap:8px}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs .in2{display:flex;width:100%;max-width:1000px}
+.tabs button{flex:1;min-height:64px;background:none;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:600;font-size:.85rem;color:var(--muted);border-top:3px solid transparent}
+.tabs button.on{color:var(--ink);border-top-color:var(--accent)}
+.tabs svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:500;max-width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.2)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+</head>
+<body>
+<div id="app" class="worker">
+  <header class="top">
+    <div class="brand"><i></i>Clicker Board</div>
+    <span class="role" id="role" hidden>Manager</span>
+    <span class="who" id="who" hidden></span>
+    <button class="btn sm ghost mgrbtn" id="mgrBtn" data-act="mgrToggle" hidden>Manager</button>
+    <div class="status"><span id="syncText">Connecting…</span><span class="sync" id="sync"></span></div>
+  </header>
+  <main id="main"></main>
+</div>
+<nav class="tabs" id="tabs" aria-label="Sections" hidden><div class="in2">
+  <button data-act="view" data-v="count" id="tab-count"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></svg>Count</button>
+  <button data-act="view" data-v="trailers" id="tab-trailers"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="13" height="10" rx="1"/><path d="M15 9h3l3 3v4h-6"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Trailers</button>
+  <button data-act="view" data-v="routing" id="tab-routing"><svg viewBox="0 0 24 24"><path d="M4 6h6l4 6h6M4 18h6l4-6"/><path d="M17 9l3 3-3 3"/></svg>Routing</button>
+  <button data-act="view" data-v="graders" id="tab-graders"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M16 14.6c2.6.2 4.6 2 5.3 5.4"/></svg>Graders</button>
+  <button data-act="view" data-v="setup" id="tab-setup"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Setup</button>
+</div></nav>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const rid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const today=()=>new Date().toLocaleDateString("en-CA");
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const fmt=n=>Number(n||0).toLocaleString("en-US");
+const UNASSIGNED="unassigned";
+const HOLD="holdout";
+const DN="dontneed"; // tires tapped after a trailer's amount was full
+
+let deviceId=null;
+try{deviceId=sessionStorage.getItem("tc-dev")}catch(e){}
+if(!deviceId){deviceId="d"+rid();try{sessionStorage.setItem("tc-dev",deviceId)}catch(e){}}
+
+// Used only when the page runs without the shared store (e.g. a preview).
+const EXAMPLE_CONFIG={grades:["1","2","3","4","5"],rims:[
+  {rim:"14",sizes:["14"]},{rim:"15",sizes:["100-15","200-15","235-75-15"]},
+  {rim:"16",sizes:["Pass 16","Big 16","215-60-16","225-60-16","205-55-16"]},
+  {rim:"17",sizes:["Low Pro 17","Pass 17","Big 17","215-55-17","245-65-17","265-70-17","225-65-17"]},
+  {rim:"18",sizes:["Low Pro 18","Pass 18","Big 18"]},{rim:"19",sizes:["Low Pro 19","Pass 19"]},
+  {rim:"20",sizes:["Low Pro 20","Pass 20"]},{rim:"22",sizes:["Low Pro 22","Pass 22"]}]};
+
+/* ---------- stores ---------- */
+function dbStore(db){
+  let uns=[];
+  const onErr=e=>{console.warn("db",e);if(e&&e.code==="revoked")toast("Saved counts are no longer available in this view.")};
+  const docMap=q=>{const o={};q.docs.forEach(d=>{const x=d.data();o[d.id]={loadId:String(x.loadId||""),deviceId:String(x.deviceId||""),grader:String(x.grader||""),counts:x.counts&&typeof x.counts==="object"?x.counts:{}}});return o};
+  const tid=(loadId,dev,grader)=>"tallies/"+loadId+"~"+dev+(grader?"~"+grader:"");
+  return {kind:"db",
+    watchConfig(cb){db.doc("config/main").onSnapshot(s=>cb(s.exists?s.data():null),onErr)},
+    watchRoutes(cb){db.doc("config/routes").onSnapshot(s=>cb(s.exists&&s.data().routes||{}),onErr)},
+    watchLoads(cb){db.collection("loads").orderBy("createdAt","desc").limit(300).onSnapshot(q=>cb(q.docs.map(d=>Object.assign({id:d.id},d.data()))),onErr)},
+    watchTallies(ids,cb){
+      uns.forEach(u=>u());uns=[];
+      const chunks=[];for(let i=0;i<ids.length;i+=30)chunks.push(ids.slice(i,i+30));
+      const parts=chunks.map(()=>({}));
+      chunks.forEach((ch,ci)=>{uns.push(db.collection("tallies").where("loadId","in",ch).onSnapshot(q=>{parts[ci]=docMap(q);cb(Object.assign({},...parts))},onErr))});
+    },
+    async getTallies(loadId){return docMap(await db.collection("tallies").where("loadId","==",loadId).get())},
+    async getMine(loadId,dev,grader){const s=await db.doc(tid(loadId,dev,grader)).get();return s.exists?(s.data().counts||{}):null},
+    watchGraders(cb){db.doc("config/graders").onSnapshot(s=>cb(s.exists&&Array.isArray(s.data().list)?s.data().list:[]),onErr)},
+    saveGraders(list){return db.doc("config/graders").set({list})},
+    saveConfig(c){return db.doc("config/main").set(c)},
+    saveRoutes(r){return db.doc("config/routes").set({routes:r})},
+    saveLoad(l){const r=Object.assign({},l);delete r.id;return db.doc("loads/"+l.id).set(r)},
+    watchRouting(cb){db.collection("routing").orderBy("createdAt","desc").limit(300).onSnapshot(q=>cb(q.docs.map(d=>Object.assign({id:d.id},d.data()))),onErr)},
+    saveRouting(id,data){return db.doc("routing/"+id).set(data)},
+    saveTally(loadId,dev,counts,grader){const d={loadId,deviceId:dev,counts,updatedAt:new Date().toISOString()};if(grader)d.grader=grader;return db.doc(tid(loadId,dev,grader)).set(d)}
+  };
+}
+function localStore(){
+  const K="tc-local-v3";let st=null;
+  try{st=JSON.parse(lsGet(K)||"null")}catch(e){}
+  if(!st)st={config:EXAMPLE_CONFIG,routes:{},loads:{},tallies:{},graders:[]};
+  if(!st.graders)st.graders=[];
+  const subs={config:[],routes:[],loads:[],graders:[]};let tcb=null,tids=[];
+  const persist=()=>lsSet(K,JSON.stringify(st));
+  const arr=()=>Object.keys(st.loads).map(id=>Object.assign({id},st.loads[id])).sort((a,b)=>a.createdAt<b.createdAt?1:-1);
+  const docs=ids=>{const o={};for(const k in st.tallies){const p=k.split("~");if(p.length>=2&&ids.includes(p[0]))o[k]={loadId:p[0],deviceId:p[1],grader:p[2]||"",counts:Object.assign({},st.tallies[k])}}return o};
+  const lk=(id,dev,grader)=>id+"~"+dev+(grader?"~"+grader:"");
+  return {kind:"local",
+    watchConfig(cb){subs.config.push(cb);setTimeout(()=>cb(st.config))},
+    watchRoutes(cb){subs.routes.push(cb);setTimeout(()=>cb(st.routes))},
+    watchLoads(cb){subs.loads.push(cb);setTimeout(()=>cb(arr()))},
+    watchTallies(ids,cb){tcb=cb;tids=ids;setTimeout(()=>cb(docs(ids)))},
+    async getTallies(id){return docs([id])},
+    async getMine(id,dev,grader){const c=st.tallies[lk(id,dev,grader)];return c?Object.assign({},c):null},
+    watchGraders(cb){subs.graders.push(cb);setTimeout(()=>cb(st.graders))},
+    watchRouting(cb){subs.loads.push(cb);setTimeout(()=>cb(arr()))},
+    async saveRouting(){},
+    async saveGraders(list){st.graders=list;persist();subs.graders.forEach(f=>f(list))},
+    async saveConfig(c){st.config=c;persist();subs.config.forEach(f=>f(c))},
+    async saveRoutes(r){st.routes=r;persist();subs.routes.forEach(f=>f(r))},
+    async saveLoad(l){const r=Object.assign({},l);delete r.id;st.loads[l.id]=r;persist();subs.loads.forEach(f=>f(arr()))},
+    async saveTally(id,dev,counts,grader){st.tallies[lk(id,dev,grader)]=counts;persist();if(tcb)setTimeout(()=>tcb(docs(tids)))}
+  };
+}
+
+/* ---------- Google Sheets store (Apps Script web app) ---------- */
+const IS_GAS=!!window.GAS_INIT;
+function gasStore(){
+  const cbs={config:[],routes:[],graders:[],loads:[],routing:[]};let tcb=null,tids=[];let last=null,rev=-1,timer=null,inflight=false;const seen={};
+  const pin=()=>{try{return localStorage.getItem("tc-pin")||""}catch(e){return ""}};
+  const run=(payload)=>new Promise((res,rej)=>{google.script.run.withSuccessHandler(r=>{if(r&&r.error)rej({code:r.code||"unavailable",message:r.error});else res(r)}).withFailureHandler(e=>rej({code:"unavailable",message:String(e&&e.message||e)})).api(JSON.stringify(payload))});
+  const call=(action,payload)=>run(Object.assign({action,pin:pin(),dev:deviceId},payload||{}));
+  const filt=()=>{const o={};if(!last)return o;for(const id in last.tallies){const t=last.tallies[id];if(tids.includes(t.loadId))o[id]={loadId:t.loadId,deviceId:t.deviceId,grader:t.grader||"",counts:t.counts||{}}}return o};
+  const part=(st,k)=>k==="routes"?(st.routes||{}):k==="loads"||k==="routing"?(st.loads||[]):k==="graders"?(st.graders||[]):st.config;
+  function apply(st){
+    if(!st||st.same)return;rev=st.rev;last=st;
+    if(st.appUrl)S.appUrl=st.appUrl;if(st.sheetUrl)S.sheetUrl=st.sheetUrl;
+    for(const k in cbs){const v=part(st,k);const str=JSON.stringify(v);if(seen[k]===str)continue;seen[k]=str;cbs[k].forEach(f=>f(v))}
+    const ts=JSON.stringify(st.tallies)+"|"+tids.join(",");if(tcb&&seen.t!==ts){seen.t=ts;tcb(filt())}
+  }
+  async function poll(){
+    clearTimeout(timer);if(inflight){timer=setTimeout(poll,600);return}inflight=true;
+    try{apply(await call("state",{rev}));if(!dirty.size&&$("#sync").classList.contains("err"))setSync("ok","Saved")}
+    catch(e){console.warn(e);setSync("err","Offline · retrying")}
+    inflight=false;timer=setTimeout(poll,document.visibilityState==="visible"?4000:20000);
+  }
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")poll()});
+  const reg=(k,cb)=>{cbs[k].push(cb);if(last)setTimeout(()=>cb(part(last,k)))};
+  const after=p=>p.then(r=>{setTimeout(poll,250);return r});
+  setTimeout(poll,0);
+  return {kind:"gas",
+    whoami:()=>call("whoami").then(r=>!!r.isManager).catch(()=>false),
+    checkPin:p=>run({action:"checkPin",pin:p}),
+    setPin:p=>call("setPin",{newPin:p}),
+    refresh(){rev=-1;for(const k in seen)delete seen[k];poll()},
+    watchConfig:cb=>reg("config",cb),watchRoutes:cb=>reg("routes",cb),watchGraders:cb=>reg("graders",cb),
+    watchLoads:cb=>reg("loads",cb),watchRouting:cb=>reg("routing",cb),
+    watchTallies(ids,cb){tcb=cb;tids=ids;delete seen.t;if(last)setTimeout(()=>{seen.t=JSON.stringify(last.tallies)+"|"+tids.join(",");cb(filt())})},
+    async getTallies(lid){const r=await call("getTallies",{lid});return r.tallies||{}},
+    async getMine(lid,dev,grader){const r=await call("getMine",{lid,dev,grader});return r.counts||null},
+    saveConfig:c=>after(call("saveConfig",{config:c})),
+    saveRoutes:r=>after(call("saveRoutes",{routes:r})),
+    saveGraders:l=>after(call("saveGraders",{list:l})),
+    saveLoad:l=>after(call("saveLoad",{load:l})),
+    async saveRouting(){},
+    saveTally:(lid,dev,counts,grader)=>after(call("saveTally",{lid,dev,counts,grader}))
+  };
+}
+// Files are handed to the browser directly on the Google version.
+const gasDownloads={save({filename,data}){return new Promise((res,rej)=>{try{
+  const blob=data instanceof Blob?data:new Blob([data]);const url=URL.createObjectURL(blob);const a=document.createElement("a");
+  a.href=url;a.download=filename;a.rel="noopener";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove()},5000);res({status:"saved"});
+}catch(e){rej({code:"unavailable"})}})}};
+
+/* ---------- state ---------- */
+const S={store:null,dl:null,isManager:false,graders:[],gradersReady:false,grader:"",linkGrader:"",gdraft:"",gedit:null,config:null,configReady:false,routes:{},loads:[],loadsReady:false,
+  tallies:{},mine:{},mineInit:{},initing:{},rim:null,size:null,view:"count",undo:[],
+  expanded:{},adjOpen:{},adjDraft:{},confirmClear:null,confirmShip:null,shippedOpen:null,shippedData:{},hdraft:{rim:"",size:"",grades:[],editing:null},amts:{},draft:{grades:[],routeAll:true,trailer:"",loadNo:"",destination:""},warned:{}};
+
+function normConfig(c){
+  const grades=(c&&Array.isArray(c.grades)&&c.grades.length?c.grades:["1","2","3","4","5"]).map(String);
+  const holdouts=(Array.isArray(c&&c.holdouts)?c.holdouts:[]).filter(h=>h&&h.rim&&h.size).map(h=>({rim:String(h.rim),size:String(h.size),grades:(h.grades||[]).map(String)}));
+  if(!c||!Array.isArray(c.rims))return {rims:[],grades,holdouts};
+  return {rims:c.rims.filter(r=>r&&r.rim).map(r=>({rim:String(r.rim),sizes:(r.sizes||[]).map(String)})),grades,holdouts};
+}
+// Sizes on a rim's size screen: its regular sizes plus any hold-out sizes for that rim.
+function rimSizes(r){const out=r.sizes.slice();S.config.holdouts.forEach(h=>{if(h.rim===r.rim&&!out.includes(h.size))out.push(h.size)});return out}
+const holdFor=(rim,size)=>S.config.holdouts.find(h=>h.rim===rim&&h.size===size)||null;
+const isHeld=(rim,size,g)=>{const h=holdFor(rim,size);return !!h&&h.grades.includes(g)};
+const destLabel=id=>id===UNASSIGNED?"Unassigned":id===HOLD?"HOLD OUT":id===DN?"DON'T NEED pile":loadName(loadById(id));
+const gColor=i=>"var(--g"+((i%5)+1)+")";
+const key=(r,s,g)=>r+"|"+s+"|"+g;
+const gradeName=g=>/^\d+$/.test(g)?"Grade "+g:g;
+const isOpen=l=>l&&l.status!=="shipped";
+const openLoads=()=>S.loads.filter(isOpen);
+const loadById=id=>S.loads.find(l=>l.id===id)||null;
+// The set list of trailers a manager can pick from: one per grade (GRADE 1 … GRADE 5).
+// A trailer can carry one grade or several (GRADE 2 & 3).
+const typeFor=g=>/^\d+$/.test(g)?"GRADE "+g:String(g).toUpperCase();
+const trailerTypes=()=>S.config.grades.map(g=>({grade:g,type:typeFor(g)}));
+const joinAnd=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" & "+a[a.length-1];
+const orderGrades=gs=>{const o=S.config.grades;return gs.slice().sort((a,b)=>(o.indexOf(a)<0?999:o.indexOf(a))-(o.indexOf(b)<0?999:o.indexOf(b)))};
+function typeForGrades(gs){gs=orderGrades(gs);return gs.every(g=>/^\d+$/.test(g))?"GRADE "+joinAnd(gs):joinAnd(gs.map(g=>String(g).toUpperCase()))}
+function gradesPhrase(gs){gs=orderGrades(gs);return gs.every(g=>/^\d+$/.test(g))?"Grade "+joinAnd(gs):joinAnd(gs)}
+const loadGrades=l=>Array.isArray(l.grades)?l.grades.map(String):(l.grade!=null?[String(l.grade)]:[]);
+const loadName=l=>{if(!l)return "No trailer set";if(l.type)return l.type+(l.trailer?" · #"+l.trailer:"");return l.trailer?"Trailer "+l.trailer:(l.loadNo?"Load "+l.loadNo:"Unnamed trailer")};
+const loadSub=l=>[l.loadNo&&(l.type||l.trailer)?"Load "+l.loadNo:"",l.destination,l.date].filter(Boolean).join(" · ");
+// Where a tap on this size + grade goes right now.
+// Newest open trailer that carries this grade (e.g. GRADE 2 & 3 for grade 3).
+const gradeTrailer=g=>openLoads().find(l=>loadGrades(l).includes(g))||null;
+// Amounts needed: a trailer's targets are per size ("rim|size"), and every grade on the trailer counts toward them.
+const sizeKey=(r,s)=>r+"|"+s;
+const loadTargets=l=>(l&&l.targets&&typeof l.targets==="object")?l.targets:{};
+function sizeCounts(counts){const o={};for(const k in counts||{}){const [r,s]=k.split("|");const n=counts[k];if(n)o[r+"|"+s]=(o[r+"|"+s]||0)+n}return o}
+// A rim-level amount ("17|*") counts any size on that rim.
+const ANY="*";
+const rimKey=r=>r+"|"+ANY;
+function rimCount(sc,r){let n=0;for(const k in sc)if(k.slice(0,k.indexOf("|"))===r)n+=sc[k];return n}
+function fillFor(l,counts){
+  const t=loadTargets(l);const sc=sizeCounts(counts);let need=0,have=0,short=0;const rows=[];
+  const rims=S.config.rims.map(r=>r.rim);for(const k in t){const r=k.slice(0,k.indexOf("|"));if(!rims.includes(r))rims.push(r)}
+  rims.forEach(r=>{
+    const cfg=S.config.rims.find(x=>x.rim===r);const sizes=cfg?rimSizes(cfg):[];
+    for(const k in t){const i=k.indexOf("|");if(k.slice(0,i)===r){const s=k.slice(i+1);if(s!==ANY&&!sizes.includes(s))sizes.push(s)}}
+    const rn=+t[rimKey(r)]||0;const rh=rimCount(sc,r);let sNeed=0,sHave=0;
+    if(rn>0){if(rh<rn)short++;rows.push({rim:r,size:"Any size",any:true,ok:overOk(l,rimKey(r)),target:rn,have:rh,left:rn-rh})}
+    sizes.forEach(s=>{const n=+t[sizeKey(r,s)]||0;if(n<=0)return;const h=sc[sizeKey(r,s)]||0;sNeed+=n;sHave+=Math.min(h,n);if(h<n)short++;rows.push({rim:r,size:s,ok:overOk(l,sizeKey(r,s)),target:n,have:h,left:n-h})});
+    // A rim amount covers its specific sizes too, so take whichever asks for more.
+    if(rn>0&&rn>=sNeed){need+=rn;have+=Math.min(rh,rn)}else{need+=sNeed;have+=sHave}
+  });
+  return {need,have,short,rows};
+}
+// What the worker sees under "Goes to": the tighter of the size amount and the rim amount.
+// Amounts marked "Over OK" are minimums: once met, more is fine.
+const overOk=(l,k)=>!!(l&&l.overOk&&l.overOk[k]);
+function needText(l,counts,r,s){
+  const t=loadTargets(l);const sc=sizeCounts(counts);const opts=[];
+  const sk=sizeKey(r,s),rk=rimKey(r);
+  const n=+t[sk]||0;if(n)opts.push({left:n-(sc[sk]||0),label:"",ok:overOk(l,sk)});
+  const rn=+t[rk]||0;if(rn)opts.push({left:rn-rimCount(sc,r),label:" "+r+"″",ok:overOk(l,rk)});
+  if(!opts.length)return null;
+  const capped=opts.filter(o=>!o.ok&&o.left<=0);
+  if(capped.length){const o=capped.reduce((a,b)=>b.left<a.left?b:a);return {cls:"full",label:o.label,over:-o.left,text:"FULL"+(o.label?" ·"+o.label:"")+(o.left<0?" · "+(-o.left)+" over":"")}}
+  const open=opts.filter(o=>o.left>0);
+  if(open.length){const o=open.reduce((a,b)=>b.left<a.left?b:a);return {cls:"",text:o.left+" more"+o.label+" needed"}}
+  return {cls:"met",text:"Goal met · more OK"};
+}
+// Why a tire isn't wanted right now: its trailer's amount for this size or rim is full (and not Over OK).
+function notNeeded(lid,nt){
+  if(nt&&nt.cls==="full")return loadName(loadById(lid))+" is full"+(nt.label?" on"+nt.label:"")+(nt.over>0?" · "+nt.over+" over":"");
+  return null;
+}
+const leftText=(n,left,ok)=>!n?"–":left>0?fmt(left):left===0?(ok?"Met":"Full"):(ok?"Met · +"+fmt(-left):"+"+fmt(-left)+" over");
+// Hold-out first, then the size's own routing, then the open trailer for its grade.
+function destFor(k){const [r,s,g]=k.split("|");if(isHeld(r,s,g))return HOLD;const id=S.routes[k];const l=id?loadById(id):null;if(isOpen(l))return l.id;const gt=gradeTrailer(g);return gt?gt.id:UNASSIGNED}
+
+// Counts per load: other devices' saved docs plus this device's live counts.
+// Manager adjustments are saved apart from workers' taps: S.mine["adj:<load>"], stored under device "m<this device>".
+const ADJ="adj:";
+const adjDev="m"+deviceId;
+const GK="~g~";
+const mkey=(lid,g)=>lid+GK+(g||"");
+const saveTarget=key=>{if(key.startsWith(ADJ))return {lid:key.slice(ADJ.length),dev:adjDev,grader:""};const i=key.indexOf(GK);return i<0?{lid:key,dev:deviceId,grader:""}:{lid:key.slice(0,i),dev:deviceId,grader:key.slice(i+GK.length)}};
+const ownKey=d=>d.deviceId===deviceId?mkey(d.loadId,d.grader):d.deviceId===adjDev?ADJ+d.loadId:null;
+function countsByLoad(){
+  const out={};
+  for(const id in S.tallies){const d=S.tallies[id];if(d.deviceId===deviceId||d.deviceId===adjDev)continue;const o=out[d.loadId]||(out[d.loadId]={});for(const k in d.counts){const n=+d.counts[k]||0;if(n)o[k]=(o[k]||0)+n}}
+  for(const key in S.mine){const lid=saveTarget(key).lid;const o=out[lid]||(out[lid]={});const m=S.mine[key];for(const k in m){if(m[k])o[k]=(o[k]||0)+m[k]}}
+  for(const lid in out)for(const k in out[lid])if(!out[lid][k])delete out[lid][k];
+  return out;
+}
+// Net tires added (+) or taken off (−) by managers on a load.
+function adjTotal(lid){
+  let n=0;
+  for(const id in S.tallies){const d=S.tallies[id];if(d.loadId!==lid||d.deviceId===adjDev||d.deviceId[0]!=="m")continue;for(const k in d.counts)n+=+d.counts[k]||0}
+  const m=S.mine[ADJ+lid]||{};for(const k in m)n+=m[k];
+  return n;
+}
+function allCounts(by){const t={};for(const lid in by)for(const k in by[lid])t[k]=(t[k]||0)+by[lid][k];return t}
+const sumWhere=(t,fn)=>{let n=0;for(const k in t)if(fn(k.split("|")))n+=t[k];return n};
+function gradeList(t){const g=S.config.grades.slice();for(const k in t){const gg=k.split("|")[2];if(gg!=null&&!g.includes(gg))g.push(gg)}return g}
+function breakdown(t){
+  t=t||{};const grades=gradeList(t);const rims=new Map();
+  S.config.rims.forEach(r=>rims.set(r.rim,new Map(rimSizes(r).map(s=>[s,null]))));
+  for(const k in t){const [r,s]=k.split("|");if(!rims.has(r))rims.set(r,new Map());if(!rims.get(r).has(s))rims.get(r).set(s,null)}
+  const out=[];
+  rims.forEach((sizes,rim)=>{
+    const rs=[];const rg=grades.map(()=>0);let rt=0;
+    sizes.forEach((_,size)=>{const g=grades.map(gr=>t[key(rim,size,gr)]||0);const tot=g.reduce((a,b)=>a+b,0);if(tot){rs.push({size,g,total:tot});g.forEach((n,i)=>rg[i]+=n);rt+=tot}});
+    if(rt)out.push({rim,sizes:rs,g:rg,total:rt});
+  });
+  const gt=grades.map((_,i)=>out.reduce((a,r)=>a+r.g[i],0));
+  return {grades,rims:out,gradeTotals:gt,total:gt.reduce((a,b)=>a+b,0)};
+}
+
+/* ---------- saving taps ---------- */
+let saveTimer=null,saving=false,again=false;const dirty=new Set();
+function setSync(cls,text){$("#sync").className="sync "+(cls||"");$("#syncText").textContent=text||""}
+function queueSave(lid){dirty.add(lid);setSync("busy","Saving…");clearTimeout(saveTimer);saveTimer=setTimeout(flushSave,400)}
+async function flushSave(){
+  clearTimeout(saveTimer);
+  if(saving){again=true;return}
+  saving=true;
+  while(dirty.size){
+    const lid=dirty.values().next().value;dirty.delete(lid);
+    try{
+      if(!S.mineInit[lid]){
+        // First write for this load from this screen: add any counts this screen saved earlier.
+        S.initing[lid]=true;
+        const tg=saveTarget(lid);const prev=await S.store.getMine(tg.lid,tg.dev,tg.grader);
+        if(!S.mineInit[lid]){const m=Object.assign({},prev||{});const cur=S.mine[lid]||{};for(const k in cur)m[k]=(m[k]||0)+cur[k];S.mine[lid]=m;S.mineInit[lid]=true}
+        S.initing[lid]=false;
+      }
+      {const tg=saveTarget(lid);await S.store.saveTally(tg.lid,tg.dev,Object.assign({},S.mine[lid]||{}),tg.grader)}
+    }catch(e){
+      S.initing[lid]=false;
+      if(e&&e.code==="unavailable"&&!e._retried){e._retried=true;dirty.add(lid);await sleep(600+Math.random()*900);continue}
+      dirty.add(lid);setSync("err","Not saved");
+      if(e&&e.code==="invalid_argument")toast(IS_GAS?"This count wasn't accepted. Ask a manager.":"This account can't save counts. Ask a manager for Contributor access.");
+      else if(e&&e.code==="quota_exceeded")toast("Storage is full. A manager needs to clear old loads.");
+      else toast("Couldn't save the last taps. They'll retry on your next tap.");
+      saving=false;return;
+    }
+  }
+  saving=false;setSync("ok","Saved");
+  if(again){again=false;if(dirty.size)flushSave()}
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&dirty.size)flushSave()});
+
+/* ---------- data events ---------- */
+let talKey="";
+function resubTallies(){
+  const ids=[UNASSIGNED,HOLD,DN].concat(openLoads().map(l=>l.id)).sort();
+  const k=ids.join(",");if(k===talKey)return;talKey=k;
+  S.store.watchTallies(ids,onTallies);
+}
+function onTallies(docs){
+  S.tallies=docs;
+  for(const id in docs){const d=docs[id];
+    const key=ownKey(d);
+    if(key&&!S.mineInit[key]&&!S.initing[key]){
+      const m=Object.assign({},d.counts);const cur=S.mine[key]||{};for(const k in cur)m[k]=(m[k]||0)+cur[k];
+      S.mine[key]=m;S.mineInit[key]=true;
+    }}
+  render();
+}
+
+/* ---------- routing copy for graders ---------- */
+// Graders can't read trailers (numbers, destinations, notes). They read only what routing needs.
+const pubFor=l=>({status:l.status==="shipped"?"shipped":"open",grades:loadGrades(l),targets:loadTargets(l),overOk:(l.overOk&&typeof l.overOk==="object")?l.overOk:{},createdAt:l.createdAt||""});
+function stableStr(v){if(Array.isArray(v))return "["+v.map(stableStr).join(",")+"]";if(v&&typeof v==="object")return "{"+Object.keys(v).sort().map(k=>JSON.stringify(k)+":"+stableStr(v[k])).join(",")+"}";return JSON.stringify(v)}
+const routingSeen={};const routingBusy={};let routingReady=false,loadsSeen=false;
+function syncRouting(){
+  if(!S.isManager||!routingReady||!loadsSeen||S.store.kind!=="db")return;
+  S.loads.forEach(l=>{if(!l.id||routingBusy[l.id])return;const p=pubFor(l);if(stableStr(p)===stableStr(routingSeen[l.id]))return;
+    routingBusy[l.id]=true;S.store.saveRouting(l.id,p).then(()=>{routingSeen[l.id]=p}).catch(e=>console.warn("routing",e)).finally(()=>{routingBusy[l.id]=false})});
+}
+
+/* ---------- graders ---------- */
+const BOARD_URL="https://claude.ai/artifact/RRxgjtZR9gyhsNM3EqSKjY";
+const activeGraders=()=>S.graders.filter(g=>g.active!==false);
+const graderById=id=>S.graders.find(g=>g.id===id)||null;
+const graderName=id=>{if(!id)return "Not tagged";const g=graderById(id);return g?g.name:"Removed grader"};
+const graderLink=id=>IS_GAS?(S.appUrl||"")+"?g="+encodeURIComponent(id):BOARD_URL+"#"+id;
+// A grader link (…#g-mike-ab12) opens a counting-only sheet for that grader.
+function readHash(){let h="";try{h=decodeURIComponent((location.hash||"").replace(/^#/,""))}catch(e){}return /^g-[A-Za-z0-9._~-]+$/.test(h)?h:""}
+function applyHash(){S.linkGrader=IS_GAS?(/^g-[A-Za-z0-9._~-]+$/.test(window.GAS_INIT.g||"")?window.GAS_INIT.g:""):readHash();if(S.linkGrader)S.grader=S.linkGrader;else{let g="";try{g=localStorage.getItem("tc-grader")||""}catch(e){}S.grader=g}}
+window.addEventListener("hashchange",()=>{applyHash();render()});
+const uiManager=()=>S.isManager&&!S.linkGrader;
+// Counting needs a grader once any graders exist (link mode supplies one).
+function linkProblem(){return S.linkGrader&&S.gradersReady&&!(graderById(S.linkGrader)&&graderById(S.linkGrader).active!==false)}
+function needPicker(){if(!S.gradersReady||S.linkGrader)return false;const ag=activeGraders();if(!ag.length)return false;return !ag.find(g=>g.id===S.grader)}
+function pickGrader(id){S.grader=id;try{localStorage.setItem("tc-grader",id)}catch(e){}S.undo=[];render()}
+// Counts per grader per load, from saved taps (adjustments and moves have no grader).
+function graderCounts(){
+  const out={};const add=(g,lid,c)=>{const o=(out[g]||(out[g]={}));const t=(o[lid]||(o[lid]={}));for(const k in c){const n=+c[k]||0;if(n)t[k]=(t[k]||0)+n}};
+  for(const id in S.tallies){const d=S.tallies[id];if(d.deviceId===deviceId||d.deviceId[0]!=="d")continue;add(d.grader||"",d.loadId,d.counts)}
+  for(const key in S.mine){if(key.startsWith(ADJ))continue;const tg=saveTarget(key);add(tg.grader,tg.lid,S.mine[key])}
+  return out;
+}
+const graderSlug=n=>(n.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,20)||"grader");
+async function saveGraderList(list,msg){
+  const before=S.graders;S.graders=list;render();
+  try{await S.store.saveGraders(list);if(msg)toast(msg)}
+  catch(e){S.graders=before;render();toast(e&&e.code==="invalid_argument"?"Only managers can change graders.":"Couldn't save graders. Try again.")}
+}
+function addGrader(){
+  const name=(S.gdraft||"").replace(/\s+/g," ").trim();
+  if(!name){toast("Enter the grader's name.");return}
+  if(S.graders.some(g=>g.active!==false&&g.name.toLowerCase()===name.toLowerCase())){toast(name+" is already on the list.");return}
+  const g={id:"g-"+graderSlug(name)+"-"+rid().slice(-4),name,active:true,createdAt:new Date().toISOString()};
+  S.gdraft="";saveGraderList(S.graders.concat([g]),name+" added. Send them their link.");
+}
+function copyLink(id,el){
+  const link=graderLink(id);const inp=document.getElementById("gl-"+id);
+  const fallback=()=>{if(inp){inp.focus();inp.select();toast("Link selected. Copy it from the box.")}};
+  try{navigator.clipboard.writeText(link).then(()=>toast("Copied "+graderName(id)+"'s link."),fallback)}catch(e){fallback()}
+}
+
+/* ---------- actions ---------- */
+let wake=null;
+function keepAwake(){if(wake||!navigator.wakeLock)return;navigator.wakeLock.request("screen").then(w=>{wake=w;w.addEventListener("release",()=>{wake=null})}).catch(()=>{})}
+function tap(g){
+  if(!S.loadsReady){toast("Still loading trailers…");return}
+  const k=key(S.rim,S.size,g);let lid=destFor(k);
+  if(lid!==UNASSIGNED&&lid!==HOLD&&notNeeded(lid,needText(loadById(lid),countsByLoad()[lid],S.rim,S.size)))lid=DN;
+  if(needPicker()){toast("Pick who's grading first.");render();return}
+  const mk=mkey(lid,S.grader);
+  const m=S.mine[mk]||(S.mine[mk]={});m[k]=(m[k]||0)+1;
+  S.undo.push({lid,k,mk});queueSave(mk);keepAwake();
+  try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}
+  if(uiManager()&&lid===UNASSIGNED&&!S.warned[k]){S.warned[k]=true;toast("No trailer is set for this size and grade. Counted as unassigned for the manager.")}
+  // Entry done: back to the rim screen for the next tire.
+  S.rim=null;S.size=null;S.flash=true;
+  render();window.scrollTo(0,0);
+}
+function lastEntryHtml(){
+  const u=S.undo[S.undo.length-1];if(!u)return "";
+  const [r,s,g]=u.k.split("|");const dest=destLabel(u.lid);
+  const f=S.flash;S.flash=false;
+  const lock=!uiManager();
+  const nt=!lock&&u.lid!==UNASSIGNED&&u.lid!==HOLD?needText(loadById(u.lid),countsByLoad()[u.lid],r,s):null;
+  const dn=u.lid===DN;
+  if(lock)return '<div class="last'+(f?" fresh":"")+(dn?" none":"")+(u.lid===HOLD?" hold":"")+'"><span class="tick" aria-hidden="true">✓</span><span class="lw"><small>Counted'+(S.grader?" by "+esc(graderName(S.grader)):"")+'</small><b>'+esc(s)+' · '+esc(gradeName(g))+'</b>'+(dn?'<span>Don\'t need · set it aside</span>':u.lid===HOLD?'<span>Hold out · set it aside</span>':"")+'</span><button class="btn sm" data-act="undo">Undo</button></div>';
+  return '<div class="last'+(f?" fresh":"")+(u.lid===UNASSIGNED||dn?" none":"")+(u.lid===HOLD?" hold":"")+'"><span class="tick" aria-hidden="true">✓</span><span class="lw"><small>Counted'+(S.grader?" by "+esc(graderName(S.grader)):"")+'</small><b>'+esc(s)+' · '+esc(gradeName(g))+'</b><span>→ '+esc(dn?"DON'T NEED · set aside in the don't-need pile":dest)+'</span>'+(nt?'<em class="need '+nt.cls+'">'+esc(nt.text)+'</em>':"")+'</span><button class="btn sm" data-act="undo">Undo</button></div>';
+}
+function undo(){
+  const u=S.undo.pop();if(!u){toast("Nothing to undo on this screen.");return}
+  const mk=u.mk||u.lid;const m=S.mine[mk]||{};if(m[u.k]>0){m[u.k]--;if(!m[u.k])delete m[u.k]}
+  queueSave(mk);render();
+  const [,s,g]=u.k.split("|");toast("Removed 1 · "+s+" · "+gradeName(g)+(uiManager()?" · "+destLabel(u.lid):""));
+}
+
+let routeChain=Promise.resolve();
+function saveRoutes(){const r=Object.assign({},S.routes);routeChain=routeChain.then(()=>S.store.saveRoutes(r)).catch(e=>{console.warn(e);toast("Couldn't save routing. Try again.")})}
+const loadTimers={};
+function saveLoadSoon(l,now){clearTimeout(loadTimers[l.id]);const go=()=>{const snap=Object.assign({},l);S.store.saveLoad(snap).catch(e=>{console.warn(e);toast("Couldn't save trailer info.")})};if(now)go();else loadTimers[l.id]=setTimeout(go,600)}
+function draftGrades(){const gs=S.draft.grades.filter(g=>S.config.grades.includes(g));return gs.length?orderGrades(gs):S.config.grades.slice(0,1)}
+function toggleIn(arr,g){return arr.includes(g)?(arr.length>1?arr.filter(x=>x!==g):arr):arr.concat([g])}
+// Send every size of these grades to this trailer. Returns how many moved off another open trailer.
+function routeGradesTo(id,gs){let moved=0;S.config.rims.forEach(r=>rimSizes(r).forEach(s=>gs.forEach(g=>{const k=key(r.rim,s,g);const cur=destFor(k);if(cur!==UNASSIGNED&&cur!==HOLD&&cur!==id)moved++;S.routes[k]=id})));return moved}
+async function addTrailer(){
+  const d=S.draft;const gs=draftGrades();if(!gs.length){toast("Add grades in Setup first.");return}
+  const l={id:"L"+rid(),type:typeForGrades(gs),grades:gs,trailer:d.trailer.trim(),loadNo:d.loadNo.trim(),destination:d.destination.trim(),date:today(),loadedBy:"",notes:"",status:"open",createdAt:new Date().toISOString()};
+  const before=Object.assign({},S.routes);
+  const moved=d.routeAll?routeGradesTo(l.id,gs):0;
+  S.loads=[l].concat(S.loads);S.draft={grades:gs,routeAll:d.routeAll,trailer:"",loadNo:"",destination:""};resubTallies();render();
+  try{
+    await S.store.saveLoad(l);
+    if(d.routeAll)saveRoutes();
+    toast(loadName(l)+" added."+(d.routeAll?" All "+gradesPhrase(gs)+" tires now go here"+(moved?" ("+moved+" moved from other trailers).":"."):" Set its routing on the Routing tab."));
+  }catch(e){S.loads=S.loads.filter(x=>x.id!==l.id);S.routes=before;render();toast("Couldn't add the trailer. Try again.")}
+}
+// Unassigned tires whose size + grade now has a trailer: {key: {n, to}}
+function movableUnassigned(){
+  const un=countsByLoad()[UNASSIGNED]||{};const out={};
+  for(const k in un){const n=un[k];if(n>0){const to=destFor(k);if(to!==UNASSIGNED&&to!==HOLD&&to!==DN)out[k]={n,to}}}
+  return out;
+}
+// Move them by saving a matching pair of adjustment records (minus from Unassigned, plus onto each trailer),
+// so no worker's own saved counts are touched.
+async function moveUnassigned(btn){
+  const mv=movableUnassigned();const keys=Object.keys(mv);
+  if(!keys.length){toast("Set routing for these sizes and grades first, then move them.");return}
+  const total=keys.reduce((a,k)=>a+mv[k].n,0);
+  btn.disabled=true;
+  const xid="x"+rid();const neg={};const pos={};
+  keys.forEach(k=>{const {n,to}=mv[k];neg[k]=-n;(pos[to]||(pos[to]={}))[k]=n});
+  try{
+    for(const to in pos)await S.store.saveTally(to,xid,pos[to]);
+    await S.store.saveTally(UNASSIGNED,xid,neg);
+    toast("Moved "+total+" tire"+(total===1?"":"s")+" to their trailers.");
+  }catch(e){console.warn(e);toast("Couldn't finish the move. Check the trailer counts before trying again.")}
+  btn.disabled=false;
+}
+// Manager adjustments: change a load's count for one size + grade, never below zero.
+function adjust(lid,k,delta){
+  const cur=(countsByLoad()[lid]||{})[k]||0;
+  if(delta<0)delta=Math.max(delta,-cur);
+  if(!delta)return 0;
+  const key=ADJ+lid;const m=S.mine[key]||(S.mine[key]={});
+  m[k]=(m[k]||0)+delta;if(!m[k])delete m[k];
+  queueSave(key);return delta;
+}
+function removeAll(lid){
+  const c=countsByLoad()[lid]||{};let n=0;
+  const key=ADJ+lid;const m=S.mine[key]||(S.mine[key]={});
+  for(const k in c){const v=c[k];if(v>0){m[k]=(m[k]||0)-v;if(!m[k])delete m[k];n+=v}}
+  S.confirmClear=null;queueSave(key);render();
+  toast("Took "+fmt(n)+" tire"+(n===1?"":"s")+" off "+destLabel(lid)+".");
+}
+function addFromDraft(lid){
+  const d=S.adjDraft[lid]||{};const qty=parseInt(d.qty,10);
+  if(!d.size){toast("Pick a size.");return}
+  if(!d.grade){toast("Pick a grade.");return}
+  if(!(qty>0)){toast("Enter how many tires.");return}
+  const [r,sz]=[d.size.slice(0,d.size.indexOf("|")),d.size.slice(d.size.indexOf("|")+1)];
+  adjust(lid,key(r,sz,d.grade),qty);S.adjDraft[lid]=Object.assign({},d,{qty:""});render();
+  toast("Added "+qty+" · "+sz+" · "+gradeName(d.grade)+" to "+destLabel(lid)+".");
+}
+function editGrades(id,g){
+  const l=loadById(id);if(!l)return;
+  const gs=orderGrades(toggleIn(loadGrades(l),g));
+  l.grades=gs;l.type=typeForGrades(gs);delete l.grade;saveLoadSoon(l,true);render();
+}
+function routeHere(id){
+  const l=loadById(id);if(!l)return;const gs=loadGrades(l);if(!gs.length){toast("Pick its grades first.");return}
+  const moved=routeGradesTo(id,gs);saveRoutes();render();
+  toast("All "+gradesPhrase(gs)+" tires now go to "+loadName(l)+(moved?" ("+moved+" moved from other trailers).":"."));
+}
+async function shipLoad(id){
+  const l=loadById(id);if(!l)return;
+  l.status="shipped";l.shippedAt=new Date().toISOString();S.confirmShip=null;
+  let changed=false;for(const k in S.routes)if(S.routes[k]===id){delete S.routes[k];changed=true}
+  render();
+  try{await S.store.saveLoad(Object.assign({},l));if(changed)saveRoutes();toast(loadName(l)+" marked shipped.")}
+  catch(e){toast("Couldn't mark it shipped. Try again.")}
+}
+async function reopenLoad(id){
+  const l=loadById(id);if(!l)return;l.status="open";delete l.shippedAt;S.shippedOpen=null;resubTallies();render();
+  try{await S.store.saveLoad(Object.assign({},l));toast(loadName(l)+" reopened. Set its routing again on the Routing tab.")}catch(e){toast("Couldn't reopen it. Try again.")}
+}
+async function openShipped(id){
+  if(S.shippedOpen===id){S.shippedOpen=null;render();return}
+  S.shippedOpen=id;render();
+  try{const docs=await S.store.getTallies(id);S.shippedData[id]=docs;render()}catch(e){toast("Couldn't load that trailer's counts.")}
+}
+function countsForShipped(id){
+  const docs=S.shippedData[id];if(!docs)return null;const t={};
+  for(const k in docs){const d=docs[k];const ok=ownKey(d);if(ok&&S.mine[ok])continue;for(const kk in d.counts)t[kk]=(t[kk]||0)+(+d.counts[kk]||0)}
+  for(const key in S.mine)if(saveTarget(key).lid===id)for(const kk in S.mine[key])t[kk]=(t[kk]||0)+S.mine[key][kk];
+  for(const kk in t)if(!t[kk])delete t[kk];
+  return t;
+}
+
+/* ---------- export ---------- */
+const scripts={};
+function loadScript(src){if(!scripts[src])scripts[src]=new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>{delete scripts[src];rej(new Error("load"))};document.head.appendChild(s)});return scripts[src]}
+const XLSX_SRC="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+const JSPDF_SRC="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+const AUTOTABLE_SRC="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js";
+const safeName=s=>s.replace(/[\\/:*?"<>|\[\]]+/g,"-");
+function fileBase(l){return safeName([loadName(l),l.loadNo&&l.trailer?"Load "+l.loadNo:"",l.date||today()].filter(Boolean).join(" - "))}
+async function save(filename,data){
+  if(!S.dl){toast("Downloads aren't available in this view.");return}
+  try{await S.dl.save({filename,data});toast("Saved "+filename)}
+  catch(e){if(e&&e.code==="declined")return;if(e&&e.code==="rate_limited"){toast("A save is already open. Finish that one first.");return}toast("Couldn't save the file.")}
+}
+function anyLoad(id){return loadById(id)||(id===HOLD?{id:HOLD,type:"HOLD OUT",date:today()}:id===DN?{id:DN,type:"DON'T NEED",date:today()}:id===UNASSIGNED?{id:UNASSIGNED,type:"UNASSIGNED",date:today()}:null)}
+function countsFor(id){return id&&loadById(id)&&!isOpen(loadById(id))?countsForShipped(id):(countsByLoad()[id]||{})}
+function tallyRows(b){const G=b.grades.map(gradeName);const t=[["Rim","Size"].concat(G,["Total"])];b.rims.forEach(r=>r.sizes.forEach(s=>t.push([r.rim,s.size].concat(s.g,[s.total]))));t.push(["","Total"].concat(b.gradeTotals,[b.total]));return t}
+function amountRows(l,counts){
+  const f=fillFor(l,counts);if(!f.need)return [];
+  const t=[[],["AMOUNTS NEEDED"],["Rim","Size","Needed","Over OK","Loaded","Left"]];
+  f.rows.forEach(x=>t.push([x.rim,x.size,x.target,x.ok?"Yes":"",x.have,x.left>0?x.left:leftText(x.target,x.left,x.ok)]));
+  t.push(["","Total",f.need,"",f.have,f.need-f.have]);
+  return t;
+}
+function buildRows(l,b,counts){
+  const G=b.grades.map(gradeName);
+  const t=[["TRAILER BUILD SHEET"],[],["Trailer",l.type||""],["Trailer #",l.trailer||""],["Load #",l.loadNo||""],["Date",l.date||""],["Destination",l.destination||""],["Loaded by",l.loadedBy||""],["Total tires",b.total],[],["Rim","Size"].concat(G,["Total"])];
+  b.rims.forEach(r=>{t.push([r.rim+'" rim']);r.sizes.forEach(s=>t.push([r.rim,s.size].concat(s.g,[s.total])));t.push(["",r.rim+'" subtotal'].concat(r.g,[r.total]))});
+  t.push([],["","GRAND TOTAL"].concat(b.gradeTotals,[b.total]));
+  amountRows(l,counts).forEach(r=>t.push(r));
+  if(l.notes)t.push([],["Notes",l.notes]);
+  t.push([],["Loaded by signature",""],["Checked by signature",""],["Driver signature",""]);
+  return t;
+}
+const cols=(b,a,c)=>[{wch:a},{wch:c}].concat(b.grades.map(()=>({wch:10})),[{wch:9}]);
+async function exportLoadExcel(id,btn){
+  const l=anyLoad(id);const cn=countsFor(id)||{};const b=breakdown(cn);if(!b.total&&!fillFor(l,cn).need){toast("Nothing counted or needed on this trailer yet.");return}
+  const label=btn.textContent;btn.disabled=true;btn.textContent="Preparing…";
+  try{
+    await loadScript(XLSX_SRC);const X=window.XLSX;const wb=X.utils.book_new();
+    const a=X.utils.aoa_to_sheet(tallyRows(b));a["!cols"]=cols(b,6,14);X.utils.book_append_sheet(wb,a,"Tally");
+    const c=X.utils.aoa_to_sheet(buildRows(l,b,cn));c["!cols"]=cols(b,20,18);X.utils.book_append_sheet(wb,c,"Build Sheet");
+    await save(fileBase(l)+".xlsx",new Uint8Array(X.write(wb,{bookType:"xlsx",type:"array"})));
+  }catch(e){console.warn(e);toast("Couldn't build the spreadsheet. Check your connection and try again.")}
+  finally{btn.disabled=false;btn.textContent=label}
+}
+async function exportAllExcel(btn){
+  const by=countsByLoad();const ls=openLoads();const un=breakdown(by[UNASSIGNED]||{});const ho=breakdown(by[HOLD]||{});const dnb=breakdown(by[DN]||{});
+  if(!ls.length&&!un.total&&!ho.total&&!dnb.total){toast("No open trailers to export.");return}
+  const label=btn.textContent;btn.disabled=true;btn.textContent="Preparing…";
+  try{
+    await loadScript(XLSX_SRC);const X=window.XLSX;const wb=X.utils.book_new();
+    const grades=gradeList(allCounts(by));
+    const ov=[["Trailer","Trailer #","Load #","Destination","Date"].concat(grades.map(gradeName),["Total"])];
+    ls.forEach(l=>{const b=breakdown(by[l.id]||{});ov.push([l.type||"",l.trailer||"",l.loadNo||"",l.destination||"",l.date||""].concat(grades.map(g=>{const i=b.grades.indexOf(g);return i<0?0:b.gradeTotals[i]}),[b.total]))});
+    if(ho.total)ov.push(["HOLD OUT","","","",""].concat(grades.map(g=>{const i=ho.grades.indexOf(g);return i<0?0:ho.gradeTotals[i]}),[ho.total]));
+    if(dnb.total)ov.push(["DON'T NEED","","","",""].concat(grades.map(g=>{const i=dnb.grades.indexOf(g);return i<0?0:dnb.gradeTotals[i]}),[dnb.total]));
+    if(un.total)ov.push(["Unassigned","","","",""].concat(grades.map(g=>{const i=un.grades.indexOf(g);return i<0?0:un.gradeTotals[i]}),[un.total]));
+    const o=X.utils.aoa_to_sheet(ov);o["!cols"]=[{wch:12},{wch:12},{wch:10},{wch:18},{wch:11}].concat(grades.map(()=>({wch:10})),[{wch:9}]);X.utils.book_append_sheet(wb,o,"Overview");
+    const used=new Set(["Overview"]);
+    const nm=s=>{let n=safeName(s).slice(0,31)||"Trailer";let i=2;while(used.has(n)){n=(safeName(s).slice(0,27)+" ("+i+++")")}used.add(n);return n};
+    ls.forEach(l=>{const b=breakdown(by[l.id]||{});const ws=X.utils.aoa_to_sheet(buildRows(l,b,by[l.id]));ws["!cols"]=cols(b,20,18);X.utils.book_append_sheet(wb,ws,nm(loadName(l)))});
+    if(ho.total){const ws=X.utils.aoa_to_sheet(tallyRows(ho));ws["!cols"]=cols(ho,6,14);X.utils.book_append_sheet(wb,ws,nm("HOLD OUT"))}
+    if(dnb.total){const ws=X.utils.aoa_to_sheet(tallyRows(dnb));ws["!cols"]=cols(dnb,6,14);X.utils.book_append_sheet(wb,ws,nm("DONT NEED"))}
+    if(un.total){const ws=X.utils.aoa_to_sheet(tallyRows(un));ws["!cols"]=cols(un,6,14);X.utils.book_append_sheet(wb,ws,nm("Unassigned"))}
+    {const gr=graderRows();if(gr.length>1){const ws=X.utils.aoa_to_sheet(gr);ws["!cols"]=[{wch:16},{wch:20}].concat(S.config.grades.map(()=>({wch:10})),[{wch:9}]);X.utils.book_append_sheet(wb,ws,nm("By grader"))}}
+    await save(safeName("Open trailers - "+today())+".xlsx",new Uint8Array(X.write(wb,{bookType:"xlsx",type:"array"})));
+  }catch(e){console.warn(e);toast("Couldn't build the spreadsheet. Check your connection and try again.")}
+  finally{btn.disabled=false;btn.textContent=label}
+}
+async function exportPdf(id,btn){
+  const l=anyLoad(id);const cn=countsFor(id)||{};const b=breakdown(cn);if(!b.total&&!fillFor(l,cn).need){toast("Nothing counted or needed on this trailer yet.");return}
+  const label=btn.textContent;btn.disabled=true;btn.textContent="Preparing…";
+  try{
+    await loadScript(JSPDF_SRC);await loadScript(AUTOTABLE_SRC);
+    const doc=new window.jspdf.jsPDF({unit:"pt",format:"letter"});const G=b.grades.map(gradeName);
+    const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight();
+    doc.setFont("helvetica","bold");doc.setFontSize(20);doc.text("TRAILER BUILD SHEET",40,52);
+    doc.setFontSize(10);doc.setFont("helvetica","normal");doc.text("Printed "+new Date().toLocaleString("en-US"),W-40,52,{align:"right"});
+    doc.setDrawColor(30);doc.setLineWidth(1.5);doc.line(40,62,W-40,62);
+    const f=[["Trailer",l.type],["Trailer #",l.trailer],["Load #",l.loadNo],["Date",l.date],["Destination",l.destination],["Loaded by",l.loadedBy],["Total tires",fmt(b.total)]];
+    let y=84;const colW=(W-80)/2;
+    f.forEach((p,i)=>{const x=40+(i%2)*colW;if(i%2===0&&i)y+=34;doc.setFontSize(8);doc.setTextColor(110);doc.text(p[0].toUpperCase(),x,y);doc.setFontSize(13);doc.setTextColor(20);doc.setFont("helvetica","bold");doc.text(String(p[1]||"—"),x,y+15);doc.setFont("helvetica","normal")});
+    y+=34;
+    const body=[];const bold={fontStyle:"bold"};const hi={fontStyle:"bold",fillColor:[242,188,27],textColor:20};
+    b.rims.forEach(r=>{
+      body.push([{content:r.rim+'" RIM',colSpan:G.length+2,styles:{fillColor:[225,227,222],fontStyle:"bold",textColor:20}}]);
+      r.sizes.forEach(s=>body.push([r.rim,s.size].concat(s.g.map(n=>n||""),[s.total])));
+      body.push(["",{content:r.rim+'" subtotal',styles:bold}].concat(r.g.map(n=>({content:String(n||""),styles:bold})),[{content:String(r.total),styles:bold}]));
+    });
+    body.push([{content:"GRAND TOTAL",colSpan:2,styles:hi}].concat(b.gradeTotals.map(n=>({content:String(n),styles:hi})),[{content:String(b.total),styles:hi}]));
+    doc.autoTable({startY:y,head:[["Rim","Size"].concat(G,["Total"])],body,theme:"grid",margin:{left:40,right:40},
+      styles:{fontSize:10,cellPadding:5,lineColor:[180,180,180],lineWidth:.5,halign:"right"},
+      headStyles:{fillColor:[27,29,31],textColor:255,halign:"right"},columnStyles:{0:{halign:"left",cellWidth:42},1:{halign:"left"}},
+      didParseCell:d=>{if(d.section==="head"&&d.column.index<2)d.cell.styles.halign="left"}});
+    y=doc.lastAutoTable.finalY+24;
+    const fl=fillFor(l,cn);
+    if(fl.need){
+      if(y>H-140){doc.addPage();y=60}
+      doc.setFont("helvetica","bold");doc.setFontSize(12);doc.setTextColor(20);doc.text("AMOUNTS NEEDED",40,y);doc.setFont("helvetica","normal");
+      doc.autoTable({startY:y+8,head:[["Rim","Size","Needed","Over OK","Loaded","Left"]],
+        body:fl.rows.map(x=>[x.rim,x.size,x.target,x.ok?"Yes":"",x.have,x.left>0?x.left:leftText(x.target,x.left,x.ok)]).concat([[{content:"Total",colSpan:2,styles:{fontStyle:"bold"}},{content:String(fl.need),styles:{fontStyle:"bold"}},"",{content:String(fl.have),styles:{fontStyle:"bold"}},{content:String(fl.need-fl.have),styles:{fontStyle:"bold"}}]]),
+        theme:"grid",margin:{left:40,right:40},styles:{fontSize:10,cellPadding:5,lineColor:[180,180,180],lineWidth:.5,halign:"right"},
+        headStyles:{fillColor:[27,29,31],textColor:255,halign:"right"},columnStyles:{0:{halign:"left",cellWidth:42},1:{halign:"left"}},
+        didParseCell:d=>{if(d.section==="head"&&d.column.index<2)d.cell.styles.halign="left"}});
+      y=doc.lastAutoTable.finalY+24;
+    }
+    if(l.notes){if(y>H-160){doc.addPage();y=60}doc.setFontSize(8);doc.setTextColor(110);doc.text("NOTES",40,y);doc.setFontSize(11);doc.setTextColor(20);const lines=doc.splitTextToSize(l.notes,W-80);doc.text(lines,40,y+15);y+=24+lines.length*14}
+    if(y>H-110){doc.addPage();y=60}
+    y+=30;const sw=(W-80-40)/3;
+    ["Loaded by","Checked by","Driver"].forEach((s,i)=>{const x=40+i*(sw+20);doc.setDrawColor(60);doc.setLineWidth(.75);doc.line(x,y,x+sw,y);doc.setFontSize(8);doc.setTextColor(110);doc.text(s.toUpperCase()+" — SIGNATURE",x,y+12)});
+    await save(fileBase(l)+" - Build Sheet.pdf",doc.output("arraybuffer"));
+  }catch(e){console.warn(e);toast("Couldn't build the build sheet. Check your connection and try again.")}
+  finally{btn.disabled=false;btn.textContent=label}
+}
+
+/* ---------- setup parsing ---------- */
+function configToText(c){return c.rims.map(r=>r.rim+": "+r.sizes.join(", ")).join("\n")}
+function parseSizes(text){
+  const rims=[];const seen=new Map();
+  text.split(/\n+/).forEach(line=>{
+    line=line.trim();if(!line)return;
+    const m=line.match(/^([^:=]+)[:=](.*)$/);if(!m)return;
+    const rim=m[1].replace(/["″”'|]|rims?|inch(es)?/gi,"").trim();if(!rim)return;
+    const sizes=m[2].split(/[,;]+/).map(s=>s.replace(/\|/g,"").replace(/\s+/g," ").trim()).filter(Boolean);
+    let r=seen.get(rim);if(!r){r={rim,sizes:[]};seen.set(rim,r);rims.push(r)}
+    sizes.forEach(s=>{if(!r.sizes.includes(s))r.sizes.push(s)});
+  });
+  return rims;
+}
+function parseGrades(text){const out=[];text.split(/[,\n]+/).map(s=>s.replace(/\|/g,"").trim()).filter(Boolean).forEach(g=>{if(!out.includes(g))out.push(g)});return out}
+
+/* ---------- render ---------- */
+let pendingRender=false;
+function typing(){const fe=document.activeElement;return fe&&$("#main").contains(fe)&&(fe.tagName==="INPUT"||fe.tagName==="TEXTAREA")}
+function render(){
+  const mgr=uiManager();
+  const mb=$("#mgrBtn");if(mb){mb.hidden=!IS_GAS||!!S.linkGrader;mb.textContent=S.isManager?"Lock":"Manager"}
+  $("#app").classList.toggle("worker",!mgr);$("#tabs").hidden=!mgr;$("#role").hidden=!mgr;
+  const who=$("#who");const showWho=!!S.grader&&S.gradersReady&&!linkProblem();who.hidden=!showWho;if(showWho)who.textContent=graderName(S.grader);
+  if(!mgr&&S.view!=="count")S.view="count";
+  ["count","trailers","routing","graders","setup"].forEach(v=>$("#tab-"+v).classList.toggle("on",S.view===v));
+  const m=$("#main");
+  if(S.view==="setup"){if(!m.querySelector("#setupForm")){m.innerHTML=renderSetup();updateSetupCount()}return}
+  if(S.view!=="count"&&typing()){pendingRender=true;return}
+  pendingRender=false;
+  if(S.view==="count")m.innerHTML=renderCount();
+  else if(S.view==="trailers")m.innerHTML=renderTrailers();
+  else if(S.view==="routing")m.innerHTML=renderRouting();
+  else if(S.view==="graders")m.innerHTML=renderGraders();
+}
+document.addEventListener("focusout",()=>setTimeout(()=>{if(pendingRender)render()},0));
+const loadingHtml=()=>'<div class="empty"><p>Loading…</p></div>';
+
+function renderCount(){
+  if(!S.configReady)return loadingHtml();
+  const c=S.config;
+  if(!c.rims.length)return '<div class="empty"><h3 class="h1">No sizes set up yet</h3><p>'+(S.isManager?'Add your rim and tire sizes in Setup.</p><button class="btn primary" data-act="view" data-v="setup">Open Setup</button>':'A manager needs to add sizes first.</p>')+'</div>';
+  if(S.pinOpen)return '<div class="stack"><form class="card" id="pinForm"><h3>Manager PIN</h3><p class="hint">Enter the manager PIN to open Trailers, Routing, Graders and Setup. This device stays unlocked until you tap Lock.</p><input class="in" id="pin-in" type="password" inputmode="numeric" autocomplete="current-password" aria-label="Manager PIN"><div class="actions tight"><button class="btn primary grow" type="submit">Unlock</button><button class="btn grow ghost" type="button" data-act="pinCancel">Cancel</button></div></form></div>';
+  if(S.linkGrader&&!S.gradersReady)return loadingHtml();
+  if(linkProblem())return '<div class="empty"><h3 class="h1">This grader link is turned off</h3><p>Ask your manager for a new link.</p></div>';
+  if(needPicker())return '<div class="stack"><div class="card"><h3>Who\'s grading?</h3><p class="hint">Tap your name. Every tire you count is saved under it. This phone remembers you until someone switches.</p><div class="pickers">'+activeGraders().map(g=>'<button class="picker" data-act="pickGrader" data-id="'+esc(g.id)+'">'+esc(g.name)+'</button>').join("")+'</div></div></div>';
+  if(S.rim&&!c.rims.find(r=>r.rim===S.rim)){S.rim=null;S.size=null}
+  const lock=!uiManager(); // graders see choices only: no counts, trailers or amounts
+  const by=countsByLoad();const t=allCounts(by);const all=sumWhere(t,()=>true);
+  let crumbs='<nav class="crumbs"><button class="'+(!S.rim?"on":"")+'" data-act="go" data-l="0">Rims</button>';
+  if(S.rim)crumbs+='<span class="sep">›</span><button class="'+(!S.size?"on":"")+'" data-act="go" data-l="1">'+esc(S.rim)+'″</button>';
+  if(S.size)crumbs+='<span class="sep">›</span><button class="on" data-act="go" data-l="2">'+esc(S.size)+'</button>';
+  crumbs+=(lock?"":'<span class="loadtotal"><b class="num">'+fmt(all)+'</b> on open trailers</span>')+'</nav>';
+  const gradingAs=S.grader&&!S.rim?'<div class="gradingas"><span>Grading as <b>'+esc(graderName(S.grader))+'</b></span>'+(!S.linkGrader&&activeGraders().length>1?'<button class="btn sm ghost" data-act="switchGrader">Not you? Switch</button>':"")+'</div>':"";
+  crumbs=gradingAs+crumbs;
+  if(!S.rim){
+    return crumbs+lastEntryHtml()+'<div class="tiles">'+c.rims.map(r=>{const n=sumWhere(t,k=>k[0]===r.rim);
+      return '<button class="tile'+(n&&!lock?" has":"")+'" data-act="rim" data-r="'+esc(r.rim)+'"><span class="big">'+esc(r.rim)+'″</span><span class="meta">'+(lock?"":'<b class="num">'+fmt(n)+'</b> tires · ')+rimSizes(r).length+(rimSizes(r).length===1?" size":" sizes")+'</span></button>'}).join("")+'</div>';
+  }
+  const rim=c.rims.find(r=>r.rim===S.rim);
+  if(!S.size){
+    const rs=rimSizes(rim);
+    return crumbs+'<div class="tiles sizes">'+rs.map(s=>{const g=c.grades.map(gr=>t[key(S.rim,s,gr)]||0);const n=g.reduce((a,b)=>a+b,0);const h=holdFor(S.rim,s);
+      const bars='<span class="bars">'+(n?g.map((v,i)=>v?'<span style="width:'+(v/n*100)+'%;background:'+gColor(i)+'"></span>':"").join(""):"")+'</span>';
+      // Grades of this size nobody needs right now (hold-out or trailer full).
+      const dnG=c.grades.filter(gr=>{const k=key(S.rim,s,gr);const lid=destFor(k);return lid!==UNASSIGNED&&lid!==HOLD&&!!notNeeded(lid,needText(loadById(lid),by[lid],S.rim,s))});
+      const tag=!dnG.length?"":dnG.length===c.grades.length?"Don't need · any grade":"Don't need · "+gradesPhrase(dnG);
+      return '<button class="tile size'+(n&&!lock?" has":"")+(h?" holdtile":"")+(dnG.length?" dntile":"")+'" data-act="size" data-s="'+esc(s)+'"><span class="tags">'+(h&&h.grades.length?'<span class="holdtag">Hold out · '+esc(gradesPhrase(h.grades))+'</span>':"")+(tag?'<span class="holdtag dntag">'+esc(tag)+'</span>':"")+'</span><span class="big">'+esc(s)+'</span>'+(lock?"":bars+'<span class="meta"><b class="num">'+fmt(n)+'</b> counted</span>')+'</button>'}).join("")+'</div>'
+      +(rs.length?"":'<p class="hint">No sizes listed for this rim yet.</p>');
+  }
+  const n=sumWhere(t,k=>k[0]===S.rim&&k[1]===S.size);
+  return crumbs+'<div class="gradehead"><div><div class="eyebrow">'+esc(S.rim)+'″ rim · tap a grade to count one tire</div><h2>'+esc(S.size)+'</h2></div>'+(lock?"":'<div class="sizetotal"><b class="num">'+fmt(n)+'</b>this size</div>')+'</div>'
+    +'<div class="grades">'+c.grades.map((g,i)=>{const k=key(S.rim,S.size,g);const v=t[k]||0;const lid=destFor(k);const isNum=/^\d+$/.test(g);
+      const nt=lid!==UNASSIGNED&&lid!==HOLD?needText(loadById(lid),by[lid],S.rim,S.size):null;
+      const dn=notNeeded(lid,nt);
+      const dest=lock?(dn?'<span class="dest dn"><b>DON\'T NEED</b><small>Set it aside</small></span>':lid===HOLD?'<span class="dest hold"><b>HOLD OUT</b></span>':'<span class="dest"></span>')
+        :dn?'<span class="dest dn"><b>DON\'T NEED</b><small>'+esc(dn)+'</small></span>'
+        :lid===UNASSIGNED?'<span class="dest none"><small>Goes to</small><b>No trailer set</b></span>'
+        :lid===HOLD?'<span class="dest hold"><small>Goes to</small><b>HOLD OUT</b></span>'
+        :'<span class="dest"><small>Goes to</small><b>'+esc(loadName(loadById(lid)))+'</b>'+(nt?'<em class="need '+nt.cls+'">'+esc(nt.text)+'</em>':"")+'</span>';
+      return '<button class="grade'+(dn?" dn":"")+'" style="--gc:'+gColor(i)+'" data-act="tap" data-g="'+esc(g)+'"><span class="gl">'+(isNum?'<small>Grade</small><span>'+esc(g)+'</span>':'<span class="txt">'+esc(g)+'</span>')+'</span>'+dest+(lock?"":'<span class="gc num">'+fmt(v)+'</span>')+'</button>'}).join("")+'</div>'
+    +'<div class="actions"><button class="btn grow" data-act="undo"'+(S.undo.length?"":" disabled")+'>Undo last tap</button><button class="btn grow" data-act="go" data-l="1">Change size</button><button class="btn grow ghost" data-act="go" data-l="0">Change rim</button></div>';
+}
+
+function gradeChips(b){return '<div class="gradeTotals">'+b.grades.map((g,i)=>'<div class="gt" style="--gc:'+gColor(i)+'"><span>'+esc(gradeName(g))+'</span><b class="num">'+fmt(b.gradeTotals[i])+'</b></div>').join("")+'</div>'}
+function tableHtml(b){
+  if(!b.total)return '<p class="hint">Nothing counted yet.</p>';
+  let h='<div class="tablewrap"><table><thead><tr><th>Size</th>'+b.grades.map((g,i)=>'<th style="--gc:'+gColor(i)+'"><span class="dot"></span>'+esc(gradeName(g))+'</th>').join("")+'<th>Total</th></tr></thead><tbody>';
+  b.rims.forEach(r=>{
+    h+='<tr class="rimrow"><td colspan="'+(b.grades.length+2)+'">'+esc(r.rim)+'″ rim</td></tr>';
+    r.sizes.forEach(s=>{h+='<tr><td>'+esc(s.size)+'</td>'+s.g.map(n=>'<td class="num'+(n?"":" zero")+'">'+(n?fmt(n):"–")+'</td>').join("")+'<td class="num"><b>'+fmt(s.total)+'</b></td></tr>'});
+    if(r.sizes.length>1)h+='<tr class="sub"><td>'+esc(r.rim)+'″ subtotal</td>'+r.g.map(n=>'<td class="num">'+fmt(n)+'</td>').join("")+'<td class="num">'+fmt(r.total)+'</td></tr>';
+  });
+  return h+'<tr class="grand"><td>Total</td>'+b.gradeTotals.map(n=>'<td class="num">'+fmt(n)+'</td>').join("")+'<td class="num">'+fmt(b.total)+'</td></tr></tbody></table></div>';
+}
+const adjBtn=lid=>'<button class="btn sm" data-act="adjOpen" data-id="'+esc(lid)+'">'+(S.adjOpen[lid]?"Done adjusting":"Adjust")+'</button>';
+function adjNote(lid){const n=adjTotal(lid);return n?' · manager adjusted '+(n>0?"+":"−")+fmt(Math.abs(n)):""}
+function adjEditor(lid,b){
+  if(!S.adjOpen[lid])return "";
+  const name=destLabel(lid);const d=S.adjDraft[lid]||(S.adjDraft[lid]={size:"",grade:"",qty:""});
+  let h='<div class="adj"><div class="eyebrow">Adjust counts on '+esc(name)+'</div><p class="hint">Tap − to take a tire off, + to put one back. Changes save right away and update every screen. Workers\' own taps aren\'t changed. Your changes are kept as a manager adjustment.</p>';
+  if(b.total){
+    h+='<div class="tablewrap"><table class="adjt"><thead><tr><th>Size</th>'+b.grades.map((g,i)=>'<th style="--gc:'+gColor(i)+'"><span class="dot"></span>'+esc(gradeName(g))+'</th>').join("")+'</tr></thead><tbody>';
+    b.rims.forEach(r=>{
+      h+='<tr class="rimrow"><td colspan="'+(b.grades.length+1)+'">'+esc(r.rim)+'″ rim</td></tr>';
+      r.sizes.forEach(sz=>{h+='<tr><td>'+esc(sz.size)+'</td>'+b.grades.map((g,i)=>{const k=key(r.rim,sz.size,g);const n=sz.g[i];
+        return '<td><span class="adjcell"><button class="adjbtn" data-act="adjDec" data-id="'+esc(lid)+'" data-k="'+esc(k)+'" aria-label="Take one '+esc(sz.size)+' '+esc(gradeName(g))+' off"'+(n?"":" disabled")+'>−</button><b class="num">'+fmt(n)+'</b><button class="adjbtn" data-act="adjInc" data-id="'+esc(lid)+'" data-k="'+esc(k)+'" aria-label="Put one '+esc(sz.size)+' '+esc(gradeName(g))+' back">+</button></span></td>'}).join("")+'</tr>'});
+    });
+    h+='</tbody></table></div>';
+  }else h+='<p class="hint">Nothing counted here right now.</p>';
+  const opts=[];S.config.rims.forEach(r=>rimSizes(r).forEach(sz=>opts.push('<option value="'+esc(r.rim+"|"+sz)+'"'+(d.size===r.rim+"|"+sz?" selected":"")+'>'+esc(r.rim)+'″ · '+esc(sz)+'</option>')));
+  h+='<div class="eyebrow">Add tires that were missed</div><div class="fields adjadd"><label class="f">Size<select class="in" id="adj-'+esc(lid)+'-size" data-adjdraft="size" data-id="'+esc(lid)+'"><option value="">Pick a size</option>'+opts.join("")+'</select></label>'
+    +'<label class="f">Grade<select class="in" id="adj-'+esc(lid)+'-grade" data-adjdraft="grade" data-id="'+esc(lid)+'"><option value="">Pick a grade</option>'+S.config.grades.map(g=>'<option value="'+esc(g)+'"'+(d.grade===g?" selected":"")+'>'+esc(gradeName(g))+'</option>').join("")+'</select></label>'
+    +'<label class="f">How many<input class="in num" type="number" min="1" inputmode="numeric" id="adj-'+esc(lid)+'-qty" data-adjdraft="qty" data-id="'+esc(lid)+'" value="'+esc(d.qty)+'"></label></div>'
+    +'<div class="actions tight"><button class="btn sm primary" data-act="adjAdd" data-id="'+esc(lid)+'">Add tires</button>'+(b.total?'<button class="btn sm danger" data-act="askClear" data-id="'+esc(lid)+'">Remove all tires</button>':"")+'</div>';
+  if(S.confirmClear===lid)h+='<div class="confirm"><p class="hint" style="color:var(--ink)">Take all '+fmt(b.total)+' tires off '+esc(name)+'? Use this for test counts. You can add tires back with + or the form above.</p><div class="actions tight"><button class="btn sm danger solid" data-act="clearAll" data-id="'+esc(lid)+'">Yes, remove all</button><button class="btn sm" data-act="cancelClear">Cancel</button></div></div>';
+  return h+'</div>';
+}
+function fillSummary(l,counts){
+  const f=fillFor(l,counts);if(!f.need)return "";
+  const pct=Math.round(f.have/f.need*100);
+  return '<div class="fill"><div class="fillbar"><span style="width:'+pct+'%"></span></div><p class="hint"><b class="num">'+fmt(f.have)+'</b> of <b class="num">'+fmt(f.need)+'</b> needed loaded · '+(f.short?f.short+(f.short===1?" size":" sizes")+" still short":"every size filled")+'</p>'
+    +(f.short?'<div class="shortlist">'+f.rows.filter(x=>x.left>0).map(x=>'<span class="short"><b>'+esc(x.any?"Any "+x.rim+"″":x.size)+'</b> '+fmt(x.left)+' left</span>').join("")+'</div>':"")+'</div>';
+}
+function amountsEditor(l,counts){
+  const t=loadTargets(l);const sc=sizeCounts(counts);const gs=loadGrades(l);
+  const cell=(k,label,n,have)=>{const left=n-have;const ok=overOk(l,k);const fid=esc(l.id)+'-'+esc(k.replace(/[^A-Za-z0-9]/g,"_"));
+    return '<td><input class="in amtin num" type="number" min="0" inputmode="numeric" id="amt-'+fid+'" aria-label="'+esc(label)+' needed" data-target-load="'+esc(l.id)+'" data-target-key="'+esc(k)+'" value="'+(n||"")+'"></td>'
+      +'<td class="ok"><input type="checkbox" id="ok-'+fid+'" aria-label="'+esc(label)+': OK to go over" data-overok-load="'+esc(l.id)+'" data-overok-key="'+esc(k)+'"'+(ok?" checked":"")+'></td>'
+      +'<td class="num">'+fmt(have)+'</td><td class="num '+(n?(left>0?"left":(left<0&&!ok?"over":"done")):"")+'">'+leftText(n,left,ok)+'</td>'};
+  let h='<div class="eyebrow">Amounts needed on '+esc(loadName(l))+'</div><p class="hint">Put a number on a rim row when any size of that rim will do, or on specific sizes when the size matters. You can use both. Tick “Over OK” when going past the number is fine. Leave blank for no limit.'+(gs.length>1?" "+esc(gradesPhrase(gs))+" tires count together.":"")+' Saves as you type.</p>'
+    +'<div class="tablewrap"><table class="amt"><thead><tr><th>Size</th><th>Need</th><th title="Tick when going over this amount is fine">Over OK</th><th>Loaded</th><th>Left</th></tr></thead><tbody>';
+  S.config.rims.forEach(r=>{
+    h+='<tr class="rimrow"><td>'+esc(r.rim)+'″ rim · any size</td>'+cell(rimKey(r.rim),r.rim+" inch any size",+t[rimKey(r.rim)]||0,rimCount(sc,r.rim))+'</tr>';
+    rimSizes(r).forEach(s=>{const k=sizeKey(r.rim,s);h+='<tr><td>'+esc(s)+'</td>'+cell(k,s,+t[k]||0,sc[k]||0)+'</tr>'});
+  });
+  return h+'</tbody></table></div>';
+}
+function typeChips(sel,act,id){
+  return '<div class="types" role="group" aria-label="Grades">'+trailerTypes().map((t,i)=>{const on=sel.includes(t.grade);
+    return '<button type="button" aria-pressed="'+on+'" class="typ'+(on?" on":"")+'" style="--gc:'+gColor(i)+'" data-act="'+act+'" data-g="'+esc(t.grade)+'"'+(id?' data-id="'+esc(id)+'"':"")+'><span class="box" aria-hidden="true">'+(on?"✓":"")+'</span>'+esc(t.type)+'</button>'}).join("")+'</div>';
+}
+function fld(id,f,label,v,type){return '<label class="f">'+label+'<input class="in" id="d-'+esc(id)+'-'+f+'" data-load="'+esc(id)+'" data-field="'+f+'" type="'+(type||"text")+'" autocomplete="off" value="'+esc(v||"")+'"></label>'}
+
+function renderTrailers(){
+  if(!S.configReady||!S.loadsReady)return loadingHtml();
+  const by=countsByLoad();const ls=openLoads();let h='<div class="stack">';
+  const un=breakdown(by[UNASSIGNED]||{});
+  const mv=movableUnassigned();const mvN=Object.keys(mv).reduce((a,k)=>a+mv[k].n,0);
+  if(un.total||S.adjOpen[UNASSIGNED])h+='<div class="card warn"><div class="trlhead"><div><h3>Unassigned</h3><p class="hint">Tires counted while their size and grade had no trailer. Routing only applies to new taps, so move these once their sizes are routed.</p></div><div class="trltotal"><b class="num">'+fmt(un.total)+'</b>tires</div></div>'
+    +'<div class="actions tight">'+(mvN?'<button class="btn sm primary" data-act="moveUn">Move '+fmt(mvN)+' to their trailers</button>':"")+'<button class="btn sm" data-act="view" data-v="routing">Set routing</button><button class="btn sm" data-act="toggle" data-id="'+UNASSIGNED+'">'+(S.expanded[UNASSIGNED]?"Hide sizes":"Show sizes")+'</button>'+adjBtn(UNASSIGNED)+'</div>'+adjEditor(UNASSIGNED,un)+(S.expanded[UNASSIGNED]?tableHtml(un):"")+'</div>';
+  const ho=breakdown(by[HOLD]||{});
+  if(ho.total||S.config.holdouts.length)h+='<div class="card holdcard"><div class="trlhead"><div><h3>HOLD OUT</h3><p class="hint">'+(S.config.holdouts.length?esc(S.config.holdouts.map(x=>x.size+" ("+gradesPhrase(x.grades)+")").join(" · ")):"No hold-out sizes set right now.")+'</p></div><div class="trltotal"><b class="num">'+fmt(ho.total)+'</b>tires</div></div>'
+    +(ho.total?gradeChips(ho):"")
+    +'<div class="actions tight"><button class="btn sm" data-act="toggle" data-id="'+HOLD+'"'+(ho.total?"":" disabled")+'>'+(S.expanded[HOLD]?"Hide sizes":"Show sizes")+'</button><button class="btn sm" data-act="xlsx" data-id="'+HOLD+'"'+(ho.total?"":" disabled")+'>Excel</button><button class="btn sm" data-act="pdf" data-id="'+HOLD+'"'+(ho.total?"":" disabled")+'>Build sheet (PDF)</button><button class="btn sm ghost" data-act="view" data-v="setup">Edit hold-outs</button>'+adjBtn(HOLD)+'</div>'
+    +adjEditor(HOLD,ho)+(S.expanded[HOLD]&&ho.total?tableHtml(ho):"")+'</div>';
+  const dnb=breakdown(by[DN]||{});
+  if(dnb.total||S.adjOpen[DN])h+='<div class="card dncard"><div class="trlhead"><div><h3>DON\'T NEED</h3><p class="hint">Tires counted after their trailer\'s amount for that size or rim was already full. Kept apart from HOLD OUT and off the trailers.</p></div><div class="trltotal"><b class="num">'+fmt(dnb.total)+'</b>tires</div></div>'
+    +gradeChips(dnb)
+    +'<div class="actions tight"><button class="btn sm" data-act="toggle" data-id="'+DN+'">'+(S.expanded[DN]?"Hide sizes":"Show sizes")+'</button><button class="btn sm" data-act="xlsx" data-id="'+DN+'">Excel</button><button class="btn sm" data-act="pdf" data-id="'+DN+'">Build sheet (PDF)</button>'+adjBtn(DN)+'</div>'
+    +adjEditor(DN,dnb)+(S.expanded[DN]?tableHtml(dnb):"")+'</div>';
+  h+='<div class="rowhead"><h2 class="h1">Open trailers</h2>'+(ls.length?'<button class="btn" data-act="xlsxAll">Export all to Excel</button>':"")+'</div>';
+  if(!ls.length)h+='<div class="card"><p class="hint">No open trailers. Add one below, then set which sizes and grades go to it on the Routing tab.</p></div>';
+  ls.forEach(l=>{
+    const b=breakdown(by[l.id]||{});const ex=S.expanded[l.id];const routed=Object.keys(S.routes).filter(k=>S.routes[k]===l.id).length;
+    h+='<div class="card"><div class="trlhead"><div><h3>'+esc(loadName(l))+'</h3><p class="hint">'+esc(loadSub(l)||"No load info yet")+' · '+routed+' size/grade '+(routed===1?"route":"routes")+esc(adjNote(l.id))+'</p></div><div class="trltotal"><b class="num">'+fmt(b.total)+'</b>tires</div></div>'
+      +(b.total?gradeChips(b):"")+fillSummary(l,by[l.id])
+      +'<div class="actions tight"><button class="btn sm" data-act="toggle" data-id="'+esc(l.id)+'">'+(ex?"Hide details":"Details")+'</button><button class="btn sm" data-act="amts" data-id="'+esc(l.id)+'">'+(S.amts[l.id]?"Hide amounts":"Amounts needed")+'</button><button class="btn sm" data-act="xlsx" data-id="'+esc(l.id)+'">Excel</button><button class="btn sm" data-act="pdf" data-id="'+esc(l.id)+'">Build sheet (PDF)</button>'+adjBtn(l.id)+'<button class="btn sm danger" data-act="askShip" data-id="'+esc(l.id)+'">Mark shipped</button></div>';
+    if(S.confirmShip===l.id)h+='<div class="confirm"><p class="hint" style="color:var(--ink)">Mark '+esc(loadName(l))+' as shipped? Its routing is cleared and workers can\'t count into it. You can still view and export it under Shipped.</p><div class="actions tight"><button class="btn sm danger solid" data-act="ship" data-id="'+esc(l.id)+'">Yes, mark shipped</button><button class="btn sm" data-act="cancelShip">Cancel</button></div></div>';
+    h+=adjEditor(l.id,b);
+    if(S.amts[l.id])h+=amountsEditor(l,by[l.id]);
+    if(ex)h+='<div class="eyebrow">Grades on this trailer</div>'+typeChips(loadGrades(l),"editGrade",l.id)
+      +'<div class="actions tight"><button class="btn sm" data-act="routeHere" data-id="'+esc(l.id)+'"'+(loadGrades(l).length?"":" disabled")+'>Send all '+esc(loadGrades(l).length?gradesPhrase(loadGrades(l)):"its")+' tires here</button></div>'
+      +'<div class="fields">'+fld(l.id,"trailer","Trailer #",l.trailer)+fld(l.id,"loadNo","Load #",l.loadNo)+fld(l.id,"date","Date",l.date,"date")+fld(l.id,"destination","Destination",l.destination)+fld(l.id,"loadedBy","Loaded by",l.loadedBy)
+      +'<label class="f wide">Notes<textarea class="in" id="d-'+esc(l.id)+'-notes" data-load="'+esc(l.id)+'" data-field="notes">'+esc(l.notes||"")+'</textarea></label></div>'+tableHtml(b);
+    h+='</div>';
+  });
+  const dgs=draftGrades();
+  h+='<form class="card" id="addTrailer"><h3>Add a trailer</h3><p class="hint">Tap one grade, or several to combine them on one trailer.</p>'
+    +typeChips(dgs,"pickType","")
+    +'<div class="newname"><span class="eyebrow">This trailer</span><b>'+esc(dgs.length?typeForGrades(dgs):"")+'</b></div>'
+    +'<label class="chk"><input type="checkbox" id="nt-routeAll" data-draftchk="routeAll"'+(S.draft.routeAll?" checked":"")+'> <span>Send every '+esc(gradesPhrase(dgs))+' tire to this trailer <span class="hint">(replaces any routing those grades had)</span></span></label>'
+    +'<div class="fields"><label class="f">Trailer # (optional)<input class="in" id="nt-trailer" data-draft="trailer" autocomplete="off" value="'+esc(S.draft.trailer)+'"></label><label class="f">Load #<input class="in" id="nt-loadNo" data-draft="loadNo" autocomplete="off" value="'+esc(S.draft.loadNo)+'"></label><label class="f">Destination<input class="in" id="nt-destination" data-draft="destination" autocomplete="off" value="'+esc(S.draft.destination)+'"></label></div><div class="actions tight"><button class="btn primary grow" type="submit">Add trailer</button></div></form>';
+  const shipped=S.loads.filter(l=>!isOpen(l)).sort((a,b)=>(b.shippedAt||"")<(a.shippedAt||"")?-1:1).slice(0,40);
+  h+='<h2 class="h1">Shipped</h2>';
+  if(!shipped.length)h+='<p class="hint">Trailers you mark shipped show up here with their counts.</p>';
+  else h+='<div class="loadlist">'+shipped.map(l=>{
+    const open=S.shippedOpen===l.id;const t=open?countsForShipped(l.id):null;const b=t?breakdown(t):null;
+    return '<div class="card"><div class="trlhead"><div><h3>'+esc(loadName(l))+'</h3><p class="hint">'+esc(loadSub(l)||"")+(l.shippedAt?" · shipped "+esc(new Date(l.shippedAt).toLocaleDateString("en-US")):"")+'</p></div>'+(b?'<div class="trltotal"><b class="num">'+fmt(b.total)+'</b>tires</div>':"")+'</div>'
+      +'<div class="actions tight"><button class="btn sm" data-act="shipped" data-id="'+esc(l.id)+'">'+(open?"Hide":"View counts")+'</button>'+(open?'<button class="btn sm" data-act="xlsx" data-id="'+esc(l.id)+'"'+(b?"":" disabled")+'>Excel</button><button class="btn sm" data-act="pdf" data-id="'+esc(l.id)+'"'+(b?"":" disabled")+'>Build sheet (PDF)</button><button class="btn sm ghost" data-act="reopen" data-id="'+esc(l.id)+'">Reopen</button>':"")+'</div>'
+      +(open?(b?gradeChips(b)+tableHtml(b):'<p class="hint">Loading counts…</p>'):"")+'</div>'}).join("")+'</div>';
+  return h+'</div>';
+}
+
+function trailerOptions(sel,extra){
+  return (extra||"")+'<option value="">By grade (default)</option>'+openLoads().map(l=>'<option value="'+esc(l.id)+'"'+(l.id===sel?" selected":"")+'>'+esc(loadName(l))+'</option>').join("");
+}
+function sameDest(keys){const v=keys.map(k=>{const id=S.routes[k];return id&&isOpen(loadById(id))?id:""});return v.every(x=>x===v[0])?v[0]:null}
+function renderRouting(){
+  if(!S.configReady||!S.loadsReady)return loadingHtml();
+  const c=S.config;const G=c.grades;
+  let h='<div class="stack"><div class="card"><h3>Routing</h3><p class="hint">Pick the trailer each size and grade goes to. Workers see that trailer on the grade button and their taps count onto it. Use “All grades” to set a whole row, or the rim row to set a whole rim. Cells left on “By grade” go to the open trailer for that grade, such as GRADE 2 &amp; 3 for a Grade 3 tire. Hold-out cells always go to HOLD OUT. Changes take effect on the next tap.</p></div>';
+  if(!openLoads().length)return h+'<div class="card"><p class="hint">Add a trailer on the Trailers tab first.</p><div class="actions tight"><button class="btn primary" data-act="view" data-v="trailers">Go to Trailers</button></div></div></div>';
+  h+='<div class="tablewrap"><table class="route"><thead><tr><th>Size</th><th>All grades</th>'+G.map((g,i)=>'<th style="--gc:'+gColor(i)+'"><span class="dot"></span>'+esc(gradeName(g))+'</th>').join("")+'</tr></thead><tbody>';
+  c.rims.forEach(r=>{
+    const rk=[];rimSizes(r).forEach(s=>G.forEach(g=>{if(!isHeld(r.rim,s,g))rk.push(key(r.rim,s,g))}));const rv=sameDest(rk);
+    h+='<tr class="rimrow"><td>'+esc(r.rim)+'″ rim</td><td colspan="'+(G.length+1)+'"><select class="in" aria-label="Set all of '+esc(r.rim)+' rim" data-route-keys="'+esc(rk.join("\n"))+'">'+trailerOptions(rv,rv===null?'<option value="__mixed" selected disabled>Mixed — set whole rim…</option>':"")+'</select></td></tr>';
+    rimSizes(r).forEach(s=>{
+      const sk=G.map(g=>key(r.rim,s,g));const free=sk.filter((k,i)=>!isHeld(r.rim,s,G[i]));const sv=free.length?sameDest(free):"";
+      h+='<tr><td class="sz">'+esc(s)+(holdFor(r.rim,s)?' <span class="holdtag">Hold out</span>':"")+'</td><td>'+(free.length?'<select class="in" aria-label="All grades of '+esc(s)+'" data-route-keys="'+esc(free.join("\n"))+'">'+trailerOptions(sv,sv===null?'<option value="__mixed" selected disabled>Mixed</option>':"")+'</select>':"")+'</td>'
+        +sk.map((k,i)=>{if(isHeld(r.rim,s,G[i]))return '<td><span class="holdcell">HOLD OUT</span></td>';const v=sameDest([k]);return '<td class="'+(v?"set":"")+'"><select class="in" aria-label="'+esc(s)+' '+esc(gradeName(G[i]))+'" data-route-keys="'+esc(k)+'">'+trailerOptions(v)+'</select></td>'}).join("")+'</tr>';
+    });
+  });
+  return h+'</tbody></table></div></div>';
+}
+
+function renderGraders(){
+  if(!S.gradersReady||!S.configReady)return loadingHtml();
+  const gc=graderCounts();const ls=S.loads;
+  let h='<div class="stack"><div class="card"><h3>Graders</h3><p class="hint">Each grader gets their own link. It opens a counting-only sheet with their name on it, and every tire they count is saved under that name. People who open the plain board link pick their name from a list before counting.</p>'
+    +(IS_GAS?'<details class="howto"><summary>How graders get in</summary><ol><li>Copy a grader\'s link below and send it to them, or open it on the shop phone or tablet they use. No login needed.</li><li>Bookmark it or add it to the home screen.</li><li>Anyone with a grader\'s link can count as that grader, so treat links like keys. Turn a link off below if one gets shared around.</li></ol></details>':'')
+    +(IS_GAS?"":'<details class="howto"><summary>How graders get in</summary><ol><li>Graders must be signed in to Claude.</li><li><b>Their own phones:</b> in the Share menu, invite each grader by email as <b>Editor</b>. Leave the public link off, because a public link stops invited people from saving. Only you see the manager tabs. Graders only see the counting screen.</li><li><b>Shop phones or tablets:</b> sign them in to your Claude account and open each one with a grader\'s link below. Bookmark it or add it to the home screen.</li></ol></details>')
+    +'<form id="addGrader" class="fields"><label class="f">Grader name<input class="in" id="ng-name" data-gdraft="1" autocomplete="off" placeholder="e.g. Mike" value="'+esc(S.gdraft)+'"></label><div class="actions tight" style="align-self:end"><button class="btn primary grow" type="submit">Add grader</button></div></form></div>';
+  const list=S.graders.slice().sort((a,b)=>(a.active===false)-(b.active===false)||a.name.localeCompare(b.name));
+  if(!list.length)h+='<div class="card"><p class="hint">No graders yet. Add each person above, then send them their link.</p></div>';
+  list.forEach(g=>{
+    const per=gc[g.id]||{};const all={};for(const lid in per)for(const k in per[lid])all[k]=(all[k]||0)+per[lid][k];
+    const b=breakdown(all);const off=g.active===false;
+    const where=Object.keys(per).map(lid=>({lid,n:Object.values(per[lid]).reduce((a,x)=>a+x,0)})).filter(x=>x.n).sort((a,b)=>b.n-a.n);
+    h+='<div class="card'+(off?" off":"")+'"><div class="trlhead"><div>'+(S.gedit===g.id?'<form id="renameGrader" class="rename"><input class="in" id="rg-name" data-rename="'+esc(g.id)+'" value="'+esc(g.name)+'" aria-label="New name"><button class="btn sm primary" type="submit">Save</button><button class="btn sm ghost" type="button" data-act="cancelRename">Cancel</button></form>':'<h3>'+esc(g.name)+(off?' <span class="tag offtag">Link off</span>':"")+'</h3>')
+      +'<p class="hint">'+(where.length?esc(where.map(x=>destLabel(x.lid)+": "+fmt(x.n)).join(" · ")):"No tires counted on open trailers yet.")+'</p></div><div class="trltotal"><b class="num">'+fmt(b.total)+'</b>tires</div></div>'
+      +(b.total?gradeChips(b):"")
+      +(off?"":'<div class="linkrow"><input class="in" id="gl-'+esc(g.id)+'" readonly value="'+esc(graderLink(g.id))+'" aria-label="'+esc(g.name)+'\'s link"><button class="btn sm primary" data-act="copyLink" data-id="'+esc(g.id)+'">Copy link</button></div>')
+      +'<div class="actions tight"><button class="btn sm" data-act="renameGrader" data-id="'+esc(g.id)+'">Rename</button><button class="btn sm '+(off?"":"danger")+'" data-act="toggleGrader" data-id="'+esc(g.id)+'">'+(off?"Turn link back on":"Turn link off")+'</button></div></div>';
+  });
+  const nt=gc[""];if(nt){const all={};for(const lid in nt)for(const k in nt[lid])all[k]=(all[k]||0)+nt[lid][k];const b=breakdown(all);
+    if(b.total)h+='<div class="card"><div class="trlhead"><div><h3>Not tagged</h3><p class="hint">Counted before graders were set up, or while no grader was picked.</p></div><div class="trltotal"><b class="num">'+fmt(b.total)+'</b>tires</div></div>'+gradeChips(b)+'</div>'}
+  h+='<div class="actions tight"><button class="btn" data-act="xlsxGraders"'+(S.graders.length?"":" disabled")+'>Export graders to Excel</button></div>';
+  return h+'</div>';
+}
+function graderRows(){
+  const gc=graderCounts();const grades=S.config.grades;
+  const rows=[["Grader","Trailer / pile"].concat(grades.map(gradeName),["Total"])];
+  const ids=S.graders.map(g=>g.id);if(gc[""])ids.push("");
+  ids.forEach(gid=>{const per=gc[gid]||{};let gt=grades.map(()=>0);
+    Object.keys(per).forEach(lid=>{const c=per[lid];const row=grades.map(g=>sumWhere(c,k=>k[2]===g));const tot=Object.values(c).reduce((a,x)=>a+x,0);if(!tot)return;
+      rows.push([graderName(gid),destLabel(lid)].concat(row,[tot]));gt=gt.map((x,i)=>x+row[i])});
+    const tot=gt.reduce((a,x)=>a+x,0);if(tot)rows.push([graderName(gid),"ALL"].concat(gt,[tot]));
+  });
+  return rows;
+}
+async function exportGraders(btn){
+  const rows=graderRows();if(rows.length<2){toast("No grader counts yet.");return}
+  const label=btn.textContent;btn.disabled=true;btn.textContent="Preparing…";
+  try{await loadScript(XLSX_SRC);const X=window.XLSX;const wb=X.utils.book_new();const ws=X.utils.aoa_to_sheet(rows);ws["!cols"]=[{wch:16},{wch:20}].concat(S.config.grades.map(()=>({wch:10})),[{wch:9}]);X.utils.book_append_sheet(wb,ws,"By grader");
+    await save(safeName("Graders - "+today())+".xlsx",new Uint8Array(X.write(wb,{bookType:"xlsx",type:"array"})))}
+  catch(e){console.warn(e);toast("Couldn't build the spreadsheet. Check your connection and try again.")}
+  finally{btn.disabled=false;btn.textContent=label}
+}
+function renderSetup(){
+  if(!S.configReady)return loadingHtml();
+  const c=S.config;
+  const gasCard=IS_GAS?'<div class="card"><h3>Google Sheet</h3><p class="hint">Every tap, undo and adjustment is logged in the Taps tab of your Google Sheet, and trailers are listed in the Trailers tab. Open it to sort, make pivot tables or download as Excel (File → Download → Microsoft Excel).</p>'
+    +(S.sheetUrl?'<div class="actions tight"><a class="btn primary" href="'+esc(S.sheetUrl)+'" target="_blank" rel="noopener">Open Google Sheet</a></div>':"")
+    +'<form id="pinChange" class="fields"><label class="f">New manager PIN<input class="in" id="np-pin" type="password" inputmode="numeric" autocomplete="new-password" placeholder="4–20 letters or numbers"></label><div class="actions tight" style="align-self:end"><button class="btn grow" type="submit">Change PIN</button></div></form></div>':"";
+  return '<div class="stack">'+gasCard+'<div class="card" id="holdCard">'+holdCardHtml()+'</div><form class="card" id="setupForm"><h3>Rim and tire sizes</h3>'
+    +'<p class="hint">One line per rim size. Put the rim, a colon, then the sizes or groups for that rim separated by commas. A rim with only one entry skips straight to grading.</p>'
+    +'<textarea class="in mono" id="setSizes" spellcheck="false" placeholder="16: Pass 16, Big 16, 215-60-16&#10;17: Low Pro 17, Pass 17, 225-65-17">'+esc(configToText(c))+'</textarea>'
+    +'<p class="hint" id="setCount"></p>'
+    +'<h3>Grades</h3><p class="hint">Separate with commas. Each grade becomes a counter button, in this order.</p>'
+    +'<input class="in" id="setGrades" autocomplete="off" value="'+esc(c.grades.join(", "))+'">'
+    +'<div class="actions tight"><button class="btn primary grow" type="submit">Save setup</button><button class="btn grow ghost" type="button" data-act="resetSetup">Discard changes</button></div>'
+    +'<p class="hint">Counts already taken stay on their trailers even if you rename or remove a size later. Renamed sizes need their routing set again.</p></form></div>';
+}
+// Hold-out sizes: shown on their rim's size screen; the chosen grades go to HOLD OUT instead of a grade trailer.
+function holdCardHtml(){
+  const c=S.config;const d=S.hdraft;
+  if(!d.rim||!c.rims.find(r=>r.rim===d.rim))d.rim=c.rims.length?c.rims[0].rim:"";
+  let h='<h3>Hold-out sizes</h3><p class="hint">A hold-out size shows on the size screen for its rim. For the grades you pick, those tires go to <b>HOLD OUT</b> instead of a grade trailer. Other grades of that size route normally.</p>';
+  h+=c.holdouts.length?'<div class="loadlist">'+c.holdouts.map((x,i)=>'<div class="holdrow"><span class="lr"><b>'+esc(x.size)+'</b><span>'+esc(x.rim)+'″ rim · held out of '+esc(x.grades.length?gradesPhrase(x.grades):"no grades")+'</span></span><button class="btn sm" data-act="holdEdit" data-i="'+i+'">Edit</button><button class="btn sm danger" data-act="holdDel" data-i="'+i+'">Remove</button></div>').join("")+'</div>':'<p class="hint">No hold-out sizes yet.</p>';
+  h+='<form id="holdForm" class="stack" style="padding-block:4px 0"><div class="eyebrow">'+(d.editing!=null?"Edit hold-out size":"Add a hold-out size")+'</div><div class="fields"><label class="f">Rim<select class="in" id="hd-rim" data-hdraft="rim">'+c.rims.map(r=>'<option value="'+esc(r.rim)+'"'+(r.rim===d.rim?" selected":"")+'>'+esc(r.rim)+'″</option>').join("")+'</select></label>'
+    +'<label class="f">Size<input class="in" id="hd-size" data-hdraft="size" autocomplete="off" placeholder="e.g. 235-60-18" value="'+esc(d.size)+'"></label></div>'
+    +'<div class="eyebrow">Hold out of these grades</div>'+typeChips(d.grades,"holdGrade","")
+    +'<div class="actions tight"><button class="btn primary grow" type="submit">'+(d.editing!=null?"Save hold-out":"Add hold-out")+'</button>'+(d.editing!=null?'<button class="btn grow ghost" type="button" data-act="holdCancel">Cancel</button>':"")+'</div></form>';
+  return h;
+}
+function refreshHoldCard(){const el=$("#holdCard");if(el)el.innerHTML=holdCardHtml()}
+async function saveHoldouts(list,msg){
+  const cfg={rims:S.config.rims,grades:S.config.grades,holdouts:list};
+  try{await S.store.saveConfig(cfg);S.config=normConfig(cfg);S.hdraft={rim:S.hdraft.rim,size:"",grades:[],editing:null};refreshHoldCard();toast(msg)}
+  catch(e){toast(e&&e.code==="invalid_argument"?"Only managers can change hold-outs.":"Couldn't save hold-outs. Try again.")}
+}
+function updateSetupCount(){const ta=$("#setSizes"),out=$("#setCount");if(!ta||!out)return;const r=parseSizes(ta.value);out.textContent=r.length+" rim sizes · "+r.reduce((a,x)=>a+x.sizes.length,0)+" sizes"}
+
+let toastT=null;
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},3000)}
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{
+  const el=e.target.closest("[data-act]");if(!el||el.disabled)return;
+  const id=el.dataset.id;
+  switch(el.dataset.act){
+    case "view":S.view=el.dataset.v;$("#main").innerHTML="";render();window.scrollTo(0,0);break;
+    case "rim":{S.rim=el.dataset.r;const rr=S.config.rims.find(r=>r.rim===S.rim);const rs=rr?rimSizes(rr):[];S.size=rs.length===1?rs[0]:null;render();window.scrollTo(0,0);break}
+    case "size":S.size=el.dataset.s;render();window.scrollTo(0,0);break;
+    case "go":{const lv=+el.dataset.l;if(lv===0){S.rim=null;S.size=null}else if(lv===1)S.size=null;render();break}
+    case "tap":tap(el.dataset.g);break;
+    case "undo":undo();break;
+    case "toggle":S.expanded[id]=!S.expanded[id];render();break;
+    case "amts":S.amts[id]=!S.amts[id];render();break;
+    case "pickType":S.draft.grades=toggleIn(draftGrades(),el.dataset.g);render();break;
+    case "editGrade":editGrades(id,el.dataset.g);break;
+    case "routeHere":routeHere(id);break;
+    case "moveUn":moveUnassigned(el);break;
+    case "pickGrader":pickGrader(id);break;
+    case "mgrToggle":
+      if(S.isManager){try{localStorage.removeItem("tc-pin")}catch(e){}S.isManager=false;S.view="count";S.store.refresh();$("#main").innerHTML="";render();toast("Locked. Manager tabs are hidden.")}
+      else{S.pinOpen=true;S.view="count";$("#main").innerHTML="";render();setTimeout(()=>{const i=document.getElementById("pin-in");if(i)i.focus()},0)}
+      break;
+    case "pinCancel":S.pinOpen=false;render();break;
+    case "switchGrader":S.grader="";try{localStorage.removeItem("tc-grader")}catch(e){}render();break;
+    case "copyLink":copyLink(id,el);break;
+    case "renameGrader":S.gedit=id;render();setTimeout(()=>{const i=document.getElementById("rg-name");if(i)i.focus()},0);break;
+    case "cancelRename":S.gedit=null;render();break;
+    case "toggleGrader":{const g=graderById(id);if(g)saveGraderList(S.graders.map(x=>x.id===id?Object.assign({},x,{active:x.active===false}):x),g.active===false?g.name+"'s link is back on.":g.name+"'s link is off. Their counts stay.");break}
+    case "xlsxGraders":exportGraders(el);break;
+    case "adjOpen":S.adjOpen[id]=!S.adjOpen[id];S.confirmClear=null;render();break;
+    case "adjDec":{const k=el.dataset.k;if(adjust(id,k,-1)){render();const [,sz,g]=k.split("|");toast("Took 1 · "+sz+" · "+gradeName(g)+" off "+destLabel(id)+".")}break}
+    case "adjInc":{const k=el.dataset.k;adjust(id,k,1);render();break}
+    case "adjAdd":addFromDraft(id);break;
+    case "askClear":S.confirmClear=id;render();break;
+    case "cancelClear":S.confirmClear=null;render();break;
+    case "clearAll":removeAll(id);break;
+    case "holdGrade":{const g=el.dataset.g;const a=S.hdraft.grades;S.hdraft.grades=a.includes(g)?a.filter(x=>x!==g):a.concat([g]);refreshHoldCard();break}
+    case "holdEdit":{const x=S.config.holdouts[+el.dataset.i];if(x){S.hdraft={rim:x.rim,size:x.size,grades:x.grades.slice(),editing:+el.dataset.i};refreshHoldCard()}break}
+    case "holdCancel":S.hdraft={rim:S.hdraft.rim,size:"",grades:[],editing:null};refreshHoldCard();break;
+    case "holdDel":{const i=+el.dataset.i;const x=S.config.holdouts[i];if(x)saveHoldouts(S.config.holdouts.filter((_,j)=>j!==i),x.size+" is no longer held out.");break}
+    case "askShip":S.confirmShip=id;render();break;
+    case "cancelShip":S.confirmShip=null;render();break;
+    case "ship":shipLoad(id);break;
+    case "shipped":openShipped(id);break;
+    case "reopen":reopenLoad(id);break;
+    case "xlsx":exportLoadExcel(id,el);break;
+    case "xlsxAll":exportAllExcel(el);break;
+    case "pdf":exportPdf(id,el);break;
+    case "resetSetup":$("#main").innerHTML=renderSetup();updateSetupCount();break;
+  }
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset&&t.dataset.draftchk){S.draft[t.dataset.draftchk]=t.checked;return}
+  if(t.dataset&&t.dataset.hdraft){S.hdraft[t.dataset.hdraft]=t.value;return}
+  if(t.dataset&&t.dataset.adjdraft){const d=S.adjDraft[t.dataset.id]||(S.adjDraft[t.dataset.id]={});d[t.dataset.adjdraft]=t.value;return}
+  if(t.dataset&&t.dataset.overokLoad){const l=loadById(t.dataset.overokLoad);if(l){const o=Object.assign({},l.overOk||{});if(t.checked)o[t.dataset.overokKey]=true;else delete o[t.dataset.overokKey];l.overOk=o;saveLoadSoon(l,true);render()}return}
+  const ks=t.dataset&&t.dataset.routeKeys;if(ks==null)return;
+  const v=e.target.value;if(v==="__mixed")return;
+  ks.split("\n").forEach(k=>{if(v)S.routes[k]=v;else delete S.routes[k]});
+  saveRoutes();render();
+  toast(v?"Routed to "+loadName(loadById(v))+".":"Set to go to the trailer for its grade.");
+});
+document.addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(e.target.id==="pinForm"){
+    const p=(document.getElementById("pin-in")||{}).value||"";if(!p){toast("Enter the PIN.");return}
+    try{const r=await S.store.checkPin(p);
+      if(r&&r.ok){try{localStorage.setItem("tc-pin",p)}catch(e){}S.isManager=true;S.pinOpen=false;S.store.refresh();$("#main").innerHTML="";render();toast("Manager tabs unlocked.")}
+      else toast("That PIN isn't right.")}
+    catch(err){toast(err&&err.code==="rate_limited"?err.message:"Couldn't check the PIN. Try again.")}
+    return}
+  if(e.target.id==="pinChange"){
+    const p=((document.getElementById("np-pin")||{}).value||"").trim();if(!/^[A-Za-z0-9]{4,20}$/.test(p)){toast("Use 4–20 letters or numbers.");return}
+    try{await S.store.setPin(p);try{localStorage.setItem("tc-pin",p)}catch(e){}document.getElementById("np-pin").value="";toast("PIN changed. Other manager devices need the new PIN.")}
+    catch(err){toast("Couldn't change the PIN. Try again.")}
+    return}
+  if(e.target.id==="addGrader"){addGrader();return}
+  if(e.target.id==="renameGrader"){const i=document.getElementById("rg-name");const name=(i&&i.value||"").replace(/\s+/g," ").trim();const id=i&&i.dataset.rename;if(!name){toast("Enter a name.");return}S.gedit=null;if(document.activeElement)document.activeElement.blur();saveGraderList(S.graders.map(x=>x.id===id?Object.assign({},x,{name}):x),"Renamed to "+name+". Their link stays the same.");return}
+  if(e.target.id==="addTrailer"){document.activeElement&&document.activeElement.blur&&document.activeElement.blur();addTrailer()}
+  if(e.target.id==="holdForm"){
+    const d=S.hdraft;const size=d.size.replace(/\|/g,"").replace(/\s+/g," ").trim();
+    if(!d.rim){toast("Add rim sizes first.");return}
+    if(!size){toast("Enter the hold-out size.");return}
+    if(!d.grades.length){toast("Pick at least one grade to hold it out of.");return}
+    const entry={rim:d.rim,size,grades:orderGrades(d.grades)};
+    let list=S.config.holdouts.slice();
+    if(d.editing!=null)list[d.editing]=entry;else list=list.filter(x=>!(x.rim===entry.rim&&x.size===entry.size)).concat([entry]);
+    saveHoldouts(list,size+" is held out of "+gradesPhrase(entry.grades)+".");
+    return;
+  }
+  if(e.target.id==="setupForm"){
+    const rims=parseSizes($("#setSizes").value);const grades=parseGrades($("#setGrades").value);
+    if(!rims.length){toast("Add at least one line like “17: Pass 17, Big 17”.");return}
+    if(!grades.length){toast("Add at least one grade.");return}
+    const holdouts=S.config.holdouts;
+    try{await S.store.saveConfig({rims,grades,holdouts});S.config=normConfig({rims,grades,holdouts});$("#main").innerHTML=renderSetup();updateSetupCount();toast("Setup saved.")}
+    catch(err){toast(err&&err.code==="invalid_argument"?"Only managers can change setup.":"Couldn't save setup. Try again.")}
+  }
+});
+document.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.dataset.draft){S.draft[t.dataset.draft]=t.value;return}
+  if(t.dataset.gdraft){S.gdraft=t.value;return}
+  if(t.dataset.hdraft){S.hdraft[t.dataset.hdraft]=t.value;return}
+  if(t.dataset.adjdraft){const d=S.adjDraft[t.dataset.id]||(S.adjDraft[t.dataset.id]={});d[t.dataset.adjdraft]=t.value;return}
+  if(t.dataset.targetLoad){const l=loadById(t.dataset.targetLoad);if(l){const n=parseInt(t.value,10);const tg=Object.assign({},loadTargets(l));if(n>0)tg[t.dataset.targetKey]=n;else delete tg[t.dataset.targetKey];l.targets=tg;saveLoadSoon(l)}return}
+  if(t.dataset.field&&t.dataset.load){const l=loadById(t.dataset.load);if(l){l[t.dataset.field]=t.value;saveLoadSoon(l)}return}
+  if(t.id==="setSizes")updateSetupCount();
+});
+document.addEventListener("focusout",e=>{const t=e.target;if(t.dataset&&t.dataset.targetLoad){const l=loadById(t.dataset.targetLoad);if(l&&loadTimers[l.id])saveLoadSoon(l,true);return}if(t.dataset&&t.dataset.field&&t.dataset.load){const l=loadById(t.dataset.load);if(l&&loadTimers[l.id]){saveLoadSoon(l,true)}}});
+
+/* ---------- boot ---------- */
+async function boot(){
+  applyHash();
+  render();
+  let db=null,dl=null,user=null;
+  if(IS_GAS){
+    S.dl=gasDownloads;S.store=gasStore();
+    S.isManager=await S.store.whoami();
+    setSync("ok","Ready");
+  }else if(window.claude&&typeof window.claude.use==="function"){
+    try{[db,dl,user]=await Promise.all([window.claude.use("db"),window.claude.use("downloads"),window.claude.use("user")])}catch(e){}
+  }
+  if(!IS_GAS){
+  S.dl=dl;
+  S.store=db?dbStore(db):localStore();
+  if(!db)S.isManager=true;
+  // Manager tabs are for the board's owner only. Graders invited as Editors still get just the counting screen.
+  else if(user){try{S.isManager=await user.isOwner()}catch(e){S.isManager=false}}
+  setSync("ok",db?"Ready":"This device only");
+  }
+  S.store.watchConfig(c=>{S.config=normConfig(c);S.configReady=true;
+    const fe=document.activeElement;
+    if(S.view==="setup"){
+      const inForm=fe&&fe.closest&&fe.closest("#setupForm"),inHold=fe&&fe.closest&&fe.closest("#holdCard");
+      if(!inForm&&!inHold){$("#main").innerHTML=renderSetup();updateSetupCount()}
+      else if(inForm)refreshHoldCard();
+    }
+    render()});
+  S.store.watchRoutes(r=>{S.routes=Object.assign({},r);render()});
+  S.store.watchGraders(list=>{S.graders=(list||[]).filter(g=>g&&g.id&&g.name).map(g=>({id:String(g.id),name:String(g.name),active:g.active!==false,createdAt:g.createdAt||""}));S.gradersReady=true;render()});
+  if(S.isManager||IS_GAS){
+    S.store.watchLoads(l=>{
+      const ids=new Set(l.map(x=>x.id));
+      // keep a trailer just added here until the store echoes it
+      S.loads=l.concat(S.loads.filter(x=>!ids.has(x.id)&&Date.now()-Date.parse(x.createdAt||0)<15000));
+      S.loadsReady=true;loadsSeen=true;resubTallies();render();syncRouting()});
+    S.store.watchRouting(r=>{r.forEach(x=>{const o=Object.assign({},x);delete o.id;routingSeen[x.id]=o});routingReady=true;syncRouting()});
+  }else{
+    // Graders: routing copy only (which grades each trailer takes and its amounts), no trailer details.
+    S.store.watchRouting(r=>{S.loads=r.map(x=>({id:x.id,status:x.status,grades:x.grades||[],targets:x.targets||{},overOk:x.overOk||{},createdAt:x.createdAt||""}));S.loadsReady=true;resubTallies();render()});
+  }
+  resubTallies();
+  render();
+}
+boot();
+})();
+</script>
+
+</body>
+</html>
