@@ -1,6 +1,9 @@
 # Plain static site: no build step, publish this folder as-is.
 [build]
   publish = "."
+  # Only republish when a file the site actually serves changes (saves Netlify credits).
+  # Edits to the Apps Script copy, README or rules file don't need a new deploy.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- index.html import.html backend.js config.js netlify.toml"
 
 [[headers]]
   for = "/*.js"

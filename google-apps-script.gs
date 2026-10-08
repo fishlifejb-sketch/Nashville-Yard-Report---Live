@@ -1,5 +1,5 @@
 /**
- * Trailer Yard Report: Google Sheet relay (v4: faster, no extra services needed)
+ * Trailer Yard Report: Google Sheet relay (v5: one send at a time, cleans up overlapping sends)
  *
  * Setup: in your Google Sheet → Extensions → Apps Script. Delete what's there, paste this whole file, save.
  * Pick testSetup next to Run and click Run once (approve access). Then Deploy → New deployment →
@@ -18,7 +18,12 @@ function doPost(e) {
     if (body.tool === "get_spreadsheet") {
       out = { ok: true, payload: { sheets: ss.getSheets().map(s => ({ properties: { sheetId: s.getSheetId(), title: s.getName(), index: s.getIndex() - 1 } })) } };
     } else if (body.tool === "update_spreadsheet") {
-      const n = applyRequests_(ss, a.requests || []);
+      // Several open pages can send at nearly the same moment; Google runs them one at a time here.
+      const lock = LockService.getScriptLock();
+      if (!lock.tryLock(120000)) throw new Error("The sheet is busy with another update. It will try again.");
+      let n;
+      try { n = applyRequests_(ss, a.requests || []); cleanStrays_(ss); }
+      finally { lock.releaseLock(); }
       out = { ok: true, payload: { spreadsheetId: a.spreadsheetId, replies: n } };
     } else {
       throw new Error("Unknown action: " + body.tool);
@@ -30,7 +35,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput("Trailer Yard Report sheet relay v4 is running.");
+  return ContentService.createTextOutput("Trailer Yard Report sheet relay v5 is running.");
 }
 
 // Run once from the editor to approve access.
@@ -42,11 +47,23 @@ function testSetup() {
 /* ---------- applies the site's Google Sheets "batchUpdate" requests using SpreadsheetApp ---------- */
 function applyRequests_(ss, requests) {
   const made = {}; // sheetId the site asked for → the sheet actually created
+  const sizes = new Map(); // tab sizes, tracked here so Google isn't asked before every change
   const sheetFor = id => {
     if (made[id]) return made[id];
     const s = ss.getSheets().filter(x => x.getSheetId() === id)[0];
     if (!s) throw new Error("Sheet " + id + " not found");
     return s;
+  };
+  // a tab another send already removed is simply skipped
+  const sheetIfThere = id => made[id] || ss.getSheets().filter(x => x.getSheetId() === id)[0] || null;
+  // giving a tab a name another tab already has: the older tab with that name is replaced
+  const freeName = (name, keep) => {
+    const other = ss.getSheetByName(name);
+    if (other && other.getSheetId() !== keep.getSheetId()) {
+      Object.keys(made).forEach(k => { if (made[k] === other) delete made[k]; });
+      sizes.delete(other.getSheetId());
+      ss.deleteSheet(other);
+    }
   };
   const hex = c => {
     c = c || {};
@@ -55,7 +72,6 @@ function applyRequests_(ss, requests) {
   };
   // Sheet sizes are tracked here instead of asked of Google each time: every question forces Google to
   // apply all the formatting so far, which made sends slow.
-  const sizes = new Map();
   const dims = sheet => {
     const id = sheet.getSheetId();
     if (!sizes.has(id)) sizes.set(id, { r: sheet.getMaxRows(), c: sheet.getMaxColumns() });
@@ -112,20 +128,24 @@ function applyRequests_(ss, requests) {
     n++;
     if (req.addSheet) {
       const p = req.addSheet.properties || {};
-      const s = p.index != null ? ss.insertSheet(p.title, Math.min(p.index, ss.getSheets().length)) : ss.insertSheet(p.title);
+      const clash = p.title && ss.getSheetByName(p.title);
+      const name = clash ? p.title + " tmp " + Date.now() : p.title;
+      const s = p.index != null ? ss.insertSheet(name, Math.min(p.index, ss.getSheets().length)) : ss.insertSheet(name);
+      if (clash) { freeName(p.title, s); s.setName(p.title); }
       const gp = p.gridProperties || {}, d = dims(s);
       if (gp.rowCount) { ensureSize(s, gp.rowCount, 1); if (d.r > gp.rowCount) { s.deleteRows(gp.rowCount + 1, d.r - gp.rowCount); d.r = gp.rowCount; } }
       if (gp.columnCount) { ensureSize(s, 1, gp.columnCount); if (d.c > gp.columnCount) { s.deleteColumns(gp.columnCount + 1, d.c - gp.columnCount); d.c = gp.columnCount; } }
       if (p.sheetId != null) made[p.sheetId] = s;
     } else if (req.deleteSheet) {
-      const s = sheetFor(req.deleteSheet.sheetId);
+      const s = sheetIfThere(req.deleteSheet.sheetId);
+      if (!s || ss.getSheets().length < 2) return;
       Object.keys(made).forEach(k => { if (made[k] === s) delete made[k]; });
       sizes.delete(s.getSheetId());
       ss.deleteSheet(s);
     } else if (req.updateSheetProperties) {
       const p = req.updateSheetProperties.properties || {}, s = sheetFor(p.sheetId);
       const fields = String(req.updateSheetProperties.fields || "");
-      if (/(^|,)title/.test(fields) && p.title) s.setName(p.title);
+      if (/(^|,)title/.test(fields) && p.title && s.getName() !== p.title) { freeName(p.title, s); s.setName(p.title); }
       if (/hideGridlines/.test(fields) && p.gridProperties) s.setHiddenGridlines(!!p.gridProperties.hideGridlines);
     } else if (req.repeatCell) {
       applyFormat(gridRange(req.repeatCell.range), req.repeatCell.cell && req.repeatCell.cell.userEnteredFormat);
@@ -164,4 +184,14 @@ function applyRequests_(ss, requests) {
   });
   SpreadsheetApp.flush();
   return n;
+}
+
+// Removes leftover copies from sends that overlapped: "10-08-2026 new 123…", "… tmp …" and Google's "_conflict" copies,
+// but only when the real tab with that name is there.
+function cleanStrays_(ss) {
+  const names = new Set(ss.getSheets().map(s => s.getName()));
+  ss.getSheets().forEach(s => {
+    const m = s.getName().match(/^(.+?)(?: new \d+| tmp \d+|_conflict\d+)$/);
+    if (m && names.has(m[1]) && ss.getSheets().length > 1) ss.deleteSheet(s);
+  });
 }
