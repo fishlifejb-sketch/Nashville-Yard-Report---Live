@@ -1020,9 +1020,12 @@ function sheetsFromPayload(p){
 let autoT = null, sendAgain = false;
 const LEASE_ID = "p" + Math.random().toString(36).slice(2, 10);
 const canAutoSync = () => !!(S.isOwner || S.gsAvailable);
+// Manager pages always sync; other pages (employees' Clicker) sync too once they have the weight data the report needs,
+// so an entry or an Undo on a phone reaches the Google Sheet even when no manager page is open.
+const syncHere = () => managerUI() || !!(S.wReady && S.ewReady);
 function scheduleAutoSync(delay){
   if (S.outdated) return;
-  if (!S.mcp || !S.gs || !S.gs.id || !managerUI() || !canAutoSync()) return;
+  if (!S.mcp || !S.gs || !S.gs.id || !syncHere() || !canAutoSync()) return;
   clearTimeout(autoT);
   autoT = setTimeout(() => sendToSheet(true), delay || 1500);
 }
@@ -1056,7 +1059,7 @@ function unloadRows(recs){
 let queuedSig = "";
 function maybeAutoSync(){
   if (S.outdated) return;
-  if (!S.recordsReady || !S.gsReady || !S.mcp || !S.gs || !S.gs.id || !managerUI() || !canAutoSync()) return;
+  if (!S.recordsReady || !S.gsReady || !S.mcp || !S.gs || !S.gs.id || !syncHere() || !canAutoSync()) return;
   if (S.gsFailedSig && S.gsFailedSig === yardSig(S.records, todayTab())) return; // don't hammer after an error; the next change retries
   const sig = yardSig(S.records, todayTab());
   if ((S.gs.lastSent && S.gs.lastSent.sig === sig) || sig === queuedSig) return;
@@ -1834,18 +1837,21 @@ route();
 let feedsOn = false;
 function startManagerFeeds(){
   const db = S.db;
-  if (!db || !S.isManager || feedsOn) return; feedsOn = true;
-  if (S.isManager) db.collection("weights").onSnapshot(snap => {
-    const m = {}; snap.docs.forEach(d => { m[d.id] = d.data(); }); S.weights = m; route(); maybeAutoSync();
+  if (!db || feedsOn) return; feedsOn = true;
+  db.collection("weights").onSnapshot(snap => {
+    const m = {}; snap.docs.forEach(d => { m[d.id] = d.data(); }); S.weights = m; S.wReady = true; route(); maybeAutoSync();
   }, () => {});
-  if (S.isManager) {
+  {
     const perEmp = {}, subs = {};
     const merge = () => {
       const m = {};
       Object.values(perEmp).forEach(list => list.forEach(w => { (m[w.trailerId] = m[w.trailerId] || []).push(w); }));
-      S.empWeights = m; route(); maybeAutoSync();
+      S.empWeights = m;
+      S.ewReady = Object.keys(subs).every(id => perEmp[id]);
+      route(); maybeAutoSync();
     };
     db.collection("wsub").onSnapshot(snap => {
+      if (!snap.docs.length) { S.ewReady = true; maybeAutoSync(); }
       snap.docs.forEach(d => {
         if (subs[d.id]) return;
         subs[d.id] = db.collection("wsub/" + d.id + "/entries").onSnapshot(q => {

@@ -1,5 +1,5 @@
 /**
- * Trailer Yard Report: Google Sheet relay (v3: no extra services needed)
+ * Trailer Yard Report: Google Sheet relay (v4: faster, no extra services needed)
  *
  * Setup: in your Google Sheet → Extensions → Apps Script. Delete what's there, paste this whole file, save.
  * Pick testSetup next to Run and click Run once (approve access). Then Deploy → New deployment →
@@ -30,7 +30,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput("Trailer Yard Report sheet relay v3 is running.");
+  return ContentService.createTextOutput("Trailer Yard Report sheet relay v4 is running.");
 }
 
 // Run once from the editor to approve access.
@@ -53,15 +53,24 @@ function applyRequests_(ss, requests) {
     const h = v => ("0" + Math.round(Math.max(0, Math.min(1, v || 0)) * 255).toString(16)).slice(-2);
     return "#" + h(c.red) + h(c.green) + h(c.blue);
   };
+  // Sheet sizes are tracked here instead of asked of Google each time: every question forces Google to
+  // apply all the formatting so far, which made sends slow.
+  const sizes = new Map();
+  const dims = sheet => {
+    const id = sheet.getSheetId();
+    if (!sizes.has(id)) sizes.set(id, { r: sheet.getMaxRows(), c: sheet.getMaxColumns() });
+    return sizes.get(id);
+  };
   const ensureSize = (sheet, rows, cols) => {
-    if (sheet.getMaxRows() < rows) sheet.insertRowsAfter(sheet.getMaxRows(), rows - sheet.getMaxRows());
-    if (sheet.getMaxColumns() < cols) sheet.insertColumnsAfter(sheet.getMaxColumns(), cols - sheet.getMaxColumns());
+    const d = dims(sheet);
+    if (d.r < rows) { sheet.insertRowsAfter(d.r, rows - d.r); d.r = rows; }
+    if (d.c < cols) { sheet.insertColumnsAfter(d.c, cols - d.c); d.c = cols; }
   };
   const gridRange = g => {
     const sheet = sheetFor(g.sheetId);
     const r0 = g.startRowIndex || 0, c0 = g.startColumnIndex || 0;
-    const r1 = g.endRowIndex != null ? g.endRowIndex : sheet.getMaxRows();
-    const c1 = g.endColumnIndex != null ? g.endColumnIndex : sheet.getMaxColumns();
+    const r1 = g.endRowIndex != null ? g.endRowIndex : dims(sheet).r;
+    const c1 = g.endColumnIndex != null ? g.endColumnIndex : dims(sheet).c;
     if (r1 <= r0 || c1 <= c0) return null;
     ensureSize(sheet, r1, c1);
     return sheet.getRange(r0 + 1, c0 + 1, r1 - r0, c1 - c0);
@@ -104,13 +113,14 @@ function applyRequests_(ss, requests) {
     if (req.addSheet) {
       const p = req.addSheet.properties || {};
       const s = p.index != null ? ss.insertSheet(p.title, Math.min(p.index, ss.getSheets().length)) : ss.insertSheet(p.title);
-      const gp = p.gridProperties || {};
-      if (gp.rowCount) { ensureSize(s, gp.rowCount, 1); if (s.getMaxRows() > gp.rowCount) s.deleteRows(gp.rowCount + 1, s.getMaxRows() - gp.rowCount); }
-      if (gp.columnCount) { ensureSize(s, 1, gp.columnCount); if (s.getMaxColumns() > gp.columnCount) s.deleteColumns(gp.columnCount + 1, s.getMaxColumns() - gp.columnCount); }
+      const gp = p.gridProperties || {}, d = dims(s);
+      if (gp.rowCount) { ensureSize(s, gp.rowCount, 1); if (d.r > gp.rowCount) { s.deleteRows(gp.rowCount + 1, d.r - gp.rowCount); d.r = gp.rowCount; } }
+      if (gp.columnCount) { ensureSize(s, 1, gp.columnCount); if (d.c > gp.columnCount) { s.deleteColumns(gp.columnCount + 1, d.c - gp.columnCount); d.c = gp.columnCount; } }
       if (p.sheetId != null) made[p.sheetId] = s;
     } else if (req.deleteSheet) {
       const s = sheetFor(req.deleteSheet.sheetId);
       Object.keys(made).forEach(k => { if (made[k] === s) delete made[k]; });
+      sizes.delete(s.getSheetId());
       ss.deleteSheet(s);
     } else if (req.updateSheetProperties) {
       const p = req.updateSheetProperties.properties || {}, s = sheetFor(p.sheetId);
