@@ -7,6 +7,6 @@ window.YARD_CONFIG = {
     messagingSenderId: "627326785751",
     appId: "1:627326785751:web:b928618381a092858b3892"
   },
-  sheetRelayUrl: "",
+  sheetRelayUrl: "https://script.google.com/macros/s/AKfycbztJ7zeefhDstkcOrTmYmkgxEhVSLmXXHtjpNa_p4cFHp6u_xs62IqYeqV_BBhvFc3pww/exec",
   sheetRelaySecret: "yard-72e025507f41"
 };
