@@ -1107,12 +1107,21 @@ async function sendToSheet(auto){
     const byDay = { [tab]: [] };
     unloadRows(recs).forEach(r => { const k = dayOf(r.at); (byDay[k] = byDay[k] || []).push(r); });
     const sentSigs = (S.gs && S.gs.unloadSigs) || {}, newSigs = {}, twoWeeks = Date.now() - 14 * 864e5;
+    // An earlier day's Unloaded tab whose trailers were all deleted or undone on the site has no rows left;
+    // list it anyway so it gets removed below instead of keeping trailers that are no longer on the site.
+    tabs.forEach(t => {
+      const m = String(t.title || "").match(/^Unloaded (\d\d-\d\d-\d{4})$/);
+      if (!m || byDay[m[1]]) return;
+      const [mm, dd, yy] = m[1].split("-").map(Number);
+      if (new Date(yy, mm - 1, dd).getTime() >= twoWeeks) byDay[m[1]] = [];
+    });
     const updLabel = "Updated " + new Date().toLocaleString("en-US", { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" });
     let n = 1;
     Object.keys(byDay).forEach(day => {
       const [mm, dd, yy] = day.split("-").map(Number), dayStart = new Date(yy, mm - 1, dd).getTime();
       if (day !== tab && dayStart < twoWeeks) return;
       const title = unloadTabFor(day), oldU = tabs.find(t => t.title === title);
+      if (day !== tab && !byDay[day].length) { if (oldU) reqs.push({ deleteSheet:{ sheetId:oldU.sheetId } }); return; }
       const daySig = yardSig([], day) + "." + JSON.stringify(byDay[day]).length + "." + byDay[day].map(r => [r.trailer, r.gross, r.tare, r.status, r.tires].join("~")).join("|");
       newSigs[day] = daySig;
       if (day !== tab && oldU && sentSigs[day] === daySig) return;
