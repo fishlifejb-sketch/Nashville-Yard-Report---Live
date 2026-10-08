@@ -42,3 +42,11 @@ function doPost(e) {
 function doGet() {
   return ContentService.createTextOutput("Trailer Yard Report sheet relay is running.");
 }
+
+// Run this once from the editor (pick testSetup next to Run, click Run) to approve
+// access to your spreadsheets and check the Google Sheets API service is added.
+function testSetup() {
+  const id = SpreadsheetApp.getActive() ? SpreadsheetApp.getActive().getId() : null;
+  Logger.log(id ? "Working! Sheet: " + Sheets.Spreadsheets.get(id, { fields: "properties.title" }).properties.title
+                : "Working! (Sheets API is added.)");
+}
